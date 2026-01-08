@@ -1,0 +1,114 @@
+.data-updater {
+  min-height: 100vh;
+  background: #000000;
+  color: #ffffff;
+  padding-top: 80px; /* Account for fixed navigation */
+  padding: 2rem;
+  padding-top: calc(80px + 2rem);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.updater-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(165, 128, 242, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.updater-title {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #A580F2;
+  margin-bottom: 0.5rem;
+}
+
+.updater-description {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.last-updated {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.updater-button {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  background: linear-gradient(135deg, #A580F2 0%, #7c3aed 100%);
+  border: none;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.updater-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(165, 128, 242, 0.4);
+}
+
+.updater-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.updater-message {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.updater-message.success {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.updater-message.error {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.updater-info {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.updater-info p {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.75rem;
+}
+
+.updater-info ol {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.8;
+  padding-left: 1.5rem;
+}
+
+.updater-info li {
+  margin-bottom: 0.5rem;
+}
+

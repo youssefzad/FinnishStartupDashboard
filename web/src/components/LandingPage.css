@@ -1,0 +1,597 @@
+.landing-page {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding-top: 70px; /* Account for fixed navigation */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Hero Section - Clean, minimal design with perfect vertical centering */
+/* Layout: Full viewport height, centered content, subtle background wave */
+.hero {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 85vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease;
+}
+
+/* Subtle background wave - positioned low to not interfere with text */
+.hero-bg-chart {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200%;
+  height: 60%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 1;
+  overflow: hidden;
+}
+
+/* Hero background chart SVG - scoped to hero only, subtle blur */
+.hero-bg-chart .bg-chart-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  filter: blur(6px);
+  opacity: 0.4;
+}
+
+/* Subtle area animation - very low opacity */
+.bg-chart-area {
+  opacity: 0.04;
+  transform-origin: bottom center;
+}
+
+/* Subtle line - minimal visibility */
+.bg-chart-line {
+  opacity: 0.12;
+  transform-origin: bottom center;
+}
+
+/* Hero content: Centered, max-width constrained (720-800px), clean spacing */
+/* Typography: Inter/system-ui, center-aligned, high contrast */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 760px;
+  width: 100%;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+  gap: 0;
+}
+
+/* Logo: Small gap below */
+.hero-logo {
+  margin-bottom: 1.5rem;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.fsc-logo-img {
+  height: 50px;
+  width: auto;
+  transition: opacity 0.2s ease;
+}
+
+.fsc-logo-img:hover {
+  opacity: 0.8;
+}
+
+/* Headline: Bold, large, high contrast, no text-shadow, medium gap below */
+.hero-headline {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+/* Subheadline: Medium weight, slightly smaller, 70-80% white, medium gap below */
+.hero-subheadline {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.125rem, 2vw, 1.25rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 2.5rem 0;
+  max-width: 100%;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+/* CTA Buttons: Same height, centered, small gap, one row */
+.hero-cta {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+/* Key Metrics section: Clear separation from hero with generous top margin */
+.hero-metrics {
+  margin-top: 6rem;
+  width: 100%;
+  animation: fadeInUp 0.8s ease-out 0.8s both;
+}
+
+.metrics-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(165, 128, 242, 0.3);
+}
+
+[data-theme="light"] .metrics-title {
+  text-shadow: 0 2px 20px rgba(165, 128, 242, 0.2);
+}
+
+/* CTA Buttons: Same height and padding, clean design */
+.cta-button {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Primary button: Solid purple background, white text, subtle shadow */
+.cta-button.primary {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.cta-button.primary:hover {
+  background: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+  transform: translateY(-1px);
+}
+
+.cta-button.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+}
+
+/* Secondary button: Transparent with purple border, white text */
+.cta-button.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid #7c3aed;
+}
+
+.cta-button.secondary:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: #8b5cf6;
+}
+
+[data-theme="light"] .cta-button.secondary:hover {
+  background: rgba(124, 58, 237, 0.15);
+}
+
+
+/* Key Figures Section */
+.key-figures {
+  padding: 4rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: transparent;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #A580F2;
+  margin-bottom: 3rem;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 20px rgba(165, 128, 242, 0.4);
+}
+
+.figures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.figure-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  color: white;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.figure-card:nth-child(2) {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 8px 16px rgba(245, 87, 108, 0.3);
+}
+
+.figure-card:nth-child(3) {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  box-shadow: 0 8px 16px rgba(79, 172, 254, 0.3);
+}
+
+.figure-card:nth-child(4) {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  box-shadow: 0 8px 16px rgba(67, 233, 123, 0.3);
+}
+
+.figure-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.figure-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.figure-value {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.figure-label {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero {
+    min-height: 80vh;
+    padding: 0 1.5rem;
+  }
+
+  .hero-content {
+    padding: 0 1.5rem;
+  }
+
+  .fsc-logo-img {
+    height: 40px;
+  }
+
+  .hero-cta {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .cta-button {
+    width: 100%;
+  }
+
+  .hero-metrics {
+    margin-top: 4rem;
+  }
+
+  .key-figures {
+    padding: 3rem 1rem;
+  }
+
+  .section-title {
+    font-size: 2rem;
+  }
+
+  .figures-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .figure-value {
+    font-size: 2.5rem;
+  }
+}
+
+/* Statistics Dashboard Section */
+.statistics-dashboard {
+  padding: 6rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: transparent;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 3rem;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(165, 128, 242, 0.3);
+}
+
+[data-theme="light"] .dashboard-title {
+  text-shadow: 0 2px 20px rgba(165, 128, 242, 0.2);
+}
+
+/* Metric Cards */
+.metric-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-color-strong);
+  box-shadow: 0 6px 20px var(--shadow-color);
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-trend {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.metric-trend.positive {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.metric-trend.negative {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.metric-description {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Dashboard Charts */
+.dashboard-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+}
+
+.dashboard-chart-card {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.dashboard-chart-card:hover {
+  border-color: var(--border-color-strong);
+  box-shadow: 0 12px 40px var(--shadow-color);
+  transform: translateY(-2px);
+}
+
+.chart-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2.5rem 0;
+  text-align: left;
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.chart-container {
+  width: 100%;
+  min-height: 320px;
+  height: 320px;
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.chart-container .recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-container .recharts-surface {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-container svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure Recharts SVGs are visible and not affected by hero styles */
+.dashboard-chart-card svg {
+  filter: none !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
+
+.dashboard-chart-card svg path {
+  opacity: 1 !important;
+  stroke: inherit !important;
+  fill: inherit !important;
+}
+
+.dashboard-chart-card svg .recharts-area-curve {
+  opacity: 1 !important;
+  stroke: inherit !important;
+  stroke-width: inherit !important;
+  fill: none !important;
+}
+
+.dashboard-chart-card svg .recharts-area-area {
+  opacity: 1 !important;
+  fill: inherit !important;
+}
+
+/* Ensure hero background chart styles don't affect dashboard charts */
+.hero-bg-chart svg {
+  filter: blur(4px);
+}
+
+.chart-loading {
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 14px;
+}
+
+/* Responsive Design for Dashboard */
+@media (max-width: 1024px) {
+  .metric-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .statistics-dashboard {
+    padding: 4rem 1.5rem;
+  }
+
+  .dashboard-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .metric-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .metric-card {
+    padding: 1rem;
+  }
+
+  .metric-value {
+    font-size: 1.5rem;
+  }
+
+  .metrics-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .dashboard-charts {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .dashboard-chart-card {
+    padding: 1.5rem;
+  }
+}
+

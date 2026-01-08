@@ -1,0 +1,74 @@
+.publications-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding-top: 80px; /* Account for fixed navigation */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.publications-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+}
+
+.publications-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.publications-title {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.publications-subtitle {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.publications-content {
+  margin-top: 3rem;
+}
+
+.publications-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+}
+
+.section-title {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  margin-bottom: 1rem;
+}
+
+.section-description {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .publications-container {
+    padding: 2rem 1rem;
+  }
+
+  .publications-section {
+    padding: 2rem;
+  }
+}
+

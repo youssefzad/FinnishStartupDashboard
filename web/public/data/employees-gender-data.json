@@ -1,0 +1,145 @@
+[
+  {
+    "Year": 2010,
+    "Males": 117,
+    "Females": 9,
+    "share of females": 0.07142857143,
+    "share of males": 0.9285714286,
+    "Finnish background": 117,
+    "Foreign background": 9,
+    "share of finnish": 0.9285714286,
+    "share of foreign": 0.07142857143
+  },
+  {
+    "Year": 2011,
+    "Males": 593,
+    "Females": 182,
+    "share of females": 0.2348387097,
+    "share of males": 0.7651612903,
+    "Finnish background": 702,
+    "Foreign background": 73,
+    "share of finnish": 0.9058064516,
+    "share of foreign": 0.09419354839
+  },
+  {
+    "Year": 2012,
+    "Males": 1101,
+    "Females": 365,
+    "share of females": 0.2489768076,
+    "share of males": 0.7510231924,
+    "Finnish background": 1289,
+    "Foreign background": 177,
+    "share of finnish": 0.8792633015,
+    "share of foreign": 0.1207366985
+  },
+  {
+    "Year": 2013,
+    "Males": 2043,
+    "Females": 601,
+    "share of females": 0.2273071104,
+    "share of males": 0.7726928896,
+    "Finnish background": 2329,
+    "Foreign background": 315,
+    "share of finnish": 0.8808623298,
+    "share of foreign": 0.1191376702
+  },
+  {
+    "Year": 2014,
+    "Males": 3186,
+    "Females": 855,
+    "share of females": 0.2115812918,
+    "share of males": 0.7884187082,
+    "Finnish background": 3577,
+    "Foreign background": 464,
+    "share of finnish": 0.8851769364,
+    "share of foreign": 0.1148230636
+  },
+  {
+    "Year": 2015,
+    "Males": 4484,
+    "Females": 1229,
+    "share of females": 0.2151234028,
+    "share of males": 0.7848765972,
+    "Finnish background": 5014,
+    "Foreign background": 699,
+    "share of finnish": 0.8776474707,
+    "share of foreign": 0.1223525293
+  },
+  {
+    "Year": 2016,
+    "Males": 6335,
+    "Females": 1893,
+    "share of females": 0.2300680603,
+    "share of males": 0.7699319397,
+    "Finnish background": 7083,
+    "Foreign background": 1145,
+    "share of finnish": 0.8608410306,
+    "share of foreign": 0.1391589694
+  },
+  {
+    "Year": 2017,
+    "Males": 8334,
+    "Females": 2696,
+    "share of females": 0.2444242974,
+    "share of males": 0.7555757026,
+    "Finnish background": 9345,
+    "Foreign background": 1685,
+    "share of finnish": 0.8472348141,
+    "share of foreign": 0.1527651859
+  },
+  {
+    "Year": 2018,
+    "Males": 10461,
+    "Females": 3714,
+    "share of females": 0.262010582,
+    "share of males": 0.737989418,
+    "Finnish background": 11832,
+    "Foreign background": 2343,
+    "share of finnish": 0.8347089947,
+    "share of foreign": 0.1652910053
+  },
+  {
+    "Year": 2019,
+    "Males": 12712,
+    "Females": 4617,
+    "share of females": 0.2664319926,
+    "share of males": 0.7335680074,
+    "Finnish background": 14027,
+    "Foreign background": 3302,
+    "share of finnish": 0.8094523631,
+    "share of foreign": 0.1905476369
+  },
+  {
+    "Year": 2020,
+    "Males": 13914,
+    "Females": 5363,
+    "share of females": 0.2782071899,
+    "share of males": 0.7217928101,
+    "Finnish background": 15633,
+    "Foreign background": 3644,
+    "share of finnish": 0.8109664367,
+    "share of foreign": 0.1890335633
+  },
+  {
+    "Year": 2021,
+    "Males": 17374,
+    "Females": 7259,
+    "share of females": 0.2946859903,
+    "share of males": 0.7053140097,
+    "Finnish background": 19301,
+    "Foreign background": 5332,
+    "share of finnish": 0.7835424025,
+    "share of foreign": 0.2164575975
+  },
+  {
+    "Year": 2022,
+    "Males": 19626,
+    "Females": 8363,
+    "share of females": 0.2987959556,
+    "share of males": 0.7012040444,
+    "Finnish background": 21422,
+    "Foreign background": 6567,
+    "share of finnish": 0.7653721105,
+    "share of foreign": 0.2346278895
+  }
+]
