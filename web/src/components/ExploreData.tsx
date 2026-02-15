@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useTheme } from '../contexts/ThemeContext'
+import GraphTemplate from './GraphTemplate'
+import type { GraphTemplateConfig } from './GraphTemplate'
+import BarChartTemplate from './BarChartTemplate'
+import type { BarChartTemplateConfig } from './BarChartTemplate'
 import './ExploreData.css'
 
 // Chart contextual text configuration
@@ -46,9 +50,9 @@ const ExploreData = () => {
   const [employeesGenderData, setEmployeesGenderData] = useState<any[]>([])
   const [rdiData, setRdiData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [revenueFilter, setRevenueFilter] = useState<'all' | 'early-stage' | 'scaleup'>('all')
+  const [revenueFilter, setRevenueFilter] = useState<'all' | 'early-stage' | 'later-stage'>('all')
   const [employeesFilter, setEmployeesFilter] = useState<'all' | 'finland'>('all')
-  const [firmsFilter, setFirmsFilter] = useState<'all' | 'finland' | 'startups' | 'scaleups'>('all')
+  const [firmsFilter, setFirmsFilter] = useState<'all' | 'finland' | 'early-stage' | 'later-stage'>('all')
   const [showMaleBar, setShowMaleBar] = useState<boolean>(true)
   const [showFemaleBar, setShowFemaleBar] = useState<boolean>(true)
   const [genderShareView, setGenderShareView] = useState<'none' | 'male-share' | 'female-share'>('none')
@@ -721,8 +725,8 @@ const ExploreData = () => {
     )
   }
 
-  // Render filterable revenue chart with clickable filter boxes
-  const renderFilterableRevenueChart = () => {
+  // Build revenue chart config for GraphTemplate
+  const buildRevenueChartConfig = (): GraphTemplateConfig | null => {
     if (!allData || allData.length === 0) return null
 
     // Find revenue and early stage revenue columns
@@ -757,12 +761,12 @@ const ExploreData = () => {
       let selectedColumn = revenueCol
       if (revenueFilter === 'early-stage' && earlyStageRevenueCol) {
         selectedColumn = earlyStageRevenueCol
-      } else if (revenueFilter === 'scaleup' && scaleupRevenueCol) {
+      } else if (revenueFilter === 'later-stage' && scaleupRevenueCol) {
         selectedColumn = scaleupRevenueCol
       }
 
       return allData
-      .filter(row => {
+        .filter(row => {
           const value = row[selectedColumn]
           return value !== undefined && typeof value === 'number' && value >= 0
         })
@@ -789,14 +793,13 @@ const ExploreData = () => {
     let currentLabel = 'Total Revenue'
     if (revenueFilter === 'early-stage') {
       currentLabel = 'Early Stage Revenue'
-    } else if (revenueFilter === 'scaleup') {
-      currentLabel = 'Scaleup Revenue'
+    } else if (revenueFilter === 'later-stage') {
+      currentLabel = 'Later-Stage Revenue'
     }
 
     // Get contextual text based on filter
-    const getContextText = () => {
-      if (revenueFilter === 'early-stage') {
-        // Calculate early stage revenue stats
+    const getContextText = (filter: string) => {
+      if (filter === 'early-stage') {
         const latestData = chartData[chartData.length - 1]
         const earliestData = chartData.find(d => d.originalValue > 0) || chartData[0]
         const latestValue = latestData?.originalValue || 0
@@ -808,8 +811,7 @@ const ExploreData = () => {
         const earliestBillions = earliestValue > 0 ? (earliestValue / 1000000000).toFixed(2) : '0.01'
         
         return `Early stage startup revenue represents a significant and growing portion of the Finnish startup ecosystem. Starting from approximately €${earliestBillions} billion in ${earliestYear}, early stage startups have shown remarkable growth, reaching around €${latestBillions} billion in ${latestYear}. This segment demonstrates the vitality and potential of new ventures in Finland's innovation landscape.`
-      } else if (revenueFilter === 'scaleup') {
-        // Calculate scaleup revenue stats
+      } else if (filter === 'later-stage') {
         const latestData = chartData[chartData.length - 1]
         const earliestData = chartData.find(d => d.originalValue > 0) || chartData[0]
         const latestValue = latestData?.originalValue || 0
@@ -820,138 +822,91 @@ const ExploreData = () => {
         const latestBillions = (latestValue / 1000000000).toFixed(2)
         const earliestBillions = earliestValue > 0 ? (earliestValue / 1000000000).toFixed(2) : '0.01'
         
-        return `Scaleup revenue represents a substantial portion of the Finnish startup ecosystem. Starting from approximately €${earliestBillions} billion in ${earliestYear}, scaleups have demonstrated strong growth, reaching around €${latestBillions} billion in ${latestYear}. These companies represent the maturing segment of the ecosystem, contributing significantly to Finland's economic growth and innovation capacity.`
+        return `Later-stage revenue represents a substantial portion of the Finnish startup ecosystem. Starting from approximately €${earliestBillions} billion in ${earliestYear}, later-stage firms have demonstrated strong growth, reaching around €${latestBillions} billion in ${latestYear}. These companies represent the maturing segment of the ecosystem, contributing significantly to Finland's economic growth and innovation capacity.`
       } else {
-        // Use the existing revenue context text
         return 'The total revenue of startup-based firms was approximately €0.52 billion in 2005. With a compound annual growth rate (CAGR) exceeding 19 percent, these firms generated around €12.5 billion in 2023. According to our data, the ecosystem expands roughly fivefold each decade. Based on this trajectory, the Finnish startup ecosystem could exceed €60 billion in total revenue by 2033.'
       }
     }
 
-    const contextText = getContextText()
-
-    const yearRange = getYearRange(chartData)
-    let chartTitle = `Revenue of startup-based firms ${yearRange}`
+    let chartTitle = 'Startup Revenue'
     if (revenueFilter === 'early-stage') {
-      chartTitle = `Revenue of early stage startups ${yearRange}`
-    } else if (revenueFilter === 'scaleup') {
-      chartTitle = `Revenue of scaleups ${yearRange}`
+      chartTitle = 'Startup Revenue'
+    } else if (revenueFilter === 'later-stage') {
+      chartTitle = 'Startup Revenue'
     }
     
     const chartColors = getChartColors()
 
+    // Build filter options
+    const filterOptions = [
+      { value: 'all', label: 'All Revenue' }
+    ]
+    if (earlyStageRevenueCol) {
+      filterOptions.push({ value: 'early-stage', label: 'Early-Stage' })
+    }
+    if (scaleupRevenueCol) {
+      filterOptions.push({ value: 'later-stage', label: 'Later-Stage' })
+    }
+
+    return {
+      data: chartData,
+      title: chartTitle,
+      dataLabel: currentLabel,
+      filtersConfig: {
+        enabled: true,
+        options: filterOptions,
+        defaultFilter: 'all',
+        filterKey: 'revenueFilter'
+      },
+      yAxisConfig: {
+        formatter: (value: number) => `€${value.toFixed(1)}B`,
+        width: 35
+      },
+      tooltipConfig: {
+        formatter: (_value: number, originalValue: number, label: string) => {
+          const billions = originalValue / 1000000000
+          return [`€${billions.toFixed(2)}B`, label]
+        }
+      },
+      styleConfig: {
+        strokeColor: '#A580F2',
+        gradientId: 'gradient-filterable-revenue',
+        gradientStartColor: '#A580F2',
+        gradientEndColor: '#A580F2',
+        gradientStartOpacity: 0.3,
+        gradientEndOpacity: 0.05,
+        strokeWidth: 2
+      },
+      contextText: getContextText,
+      onShowTable: () => {
+        const newValue = !showRevenueTable
+        setShowRevenueTable(newValue)
+      },
+      onFullscreen: () => setFullscreenChart('revenue'),
+      showTable: showRevenueTable,
+      chartColors,
+      windowWidth,
+      getXAxisInterval,
+      isRevenueValue: true
+    }
+  }
+
+  // Render filterable revenue chart using GraphTemplate
+  const renderFilterableRevenueChart = () => {
+    const config = buildRevenueChartConfig()
+    if (!config) return null
+
     return (
-      <div className="chart-card chart-card-filterable chart-card-with-text" style={{ gridColumn: '1 / -1' }}>
-        <div className="chart-header">
-          <h3 className="chart-card-title">{chartTitle}</h3>
-        </div>
-        <div className="chart-content-wrapper">
-          <div className="chart-column">
-            <div className="chart-wrapper chart-wrapper-grid">
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData} margin={{ bottom: 15, top: 10, right: 10, left: 10 }}>
-                  <defs>
-                    <linearGradient id="gradient-filterable-revenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#A580F2" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#A580F2" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={40}
-                    interval={getXAxisInterval()}
-                  />
-                  <YAxis 
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                    tickFormatter={(value) => `€${value.toFixed(1)}B`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: chartColors.tooltipBg, 
-                      border: 'none', 
-                      borderRadius: '8px',
-                      color: chartColors.tooltipText
-                    }}
-                    formatter={(_value: number, _name: string, props: any) => {
-                      const billions = props.payload.originalValue / 1000000000
-                      return [`€${billions.toFixed(2)}B`, currentLabel]
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#A580F2" 
-                    fill="url(#gradient-filterable-revenue)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="chart-actions">
-              <button
-                className={`action-button ${showRevenueTable ? 'active' : ''}`}
-                onClick={() => setShowRevenueTable(!showRevenueTable)}
-                title={showRevenueTable ? 'Hide Data Table' : 'Show Data Table'}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
-                </svg>
-              </button>
-              <button
-                className="action-button"
-                onClick={() => setFullscreenChart('revenue')}
-                title="Open in fullscreen"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className="chart-sidebar">
-            <div className="chart-filters">
-              <button
-                className={`filter-button ${revenueFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setRevenueFilter('all')}
-              >
-                <span className="filter-label">All Revenue</span>
-              </button>
-              {earlyStageRevenueCol && (
-                <button
-                  className={`filter-button ${revenueFilter === 'early-stage' ? 'active' : ''}`}
-                  onClick={() => setRevenueFilter('early-stage')}
-                >
-                  <span className="filter-label">Early Stage Startups</span>
-                </button>
-              )}
-              {scaleupRevenueCol && (
-                <button
-                  className={`filter-button ${revenueFilter === 'scaleup' ? 'active' : ''}`}
-                  onClick={() => setRevenueFilter('scaleup')}
-                >
-                  <span className="filter-label">Scaleups</span>
-                </button>
-              )}
-            </div>
-            {contextText && (
-              <div className="chart-context-text">
-                <p>{contextText}</p>
-              </div>
-            )}
-          </div>
-        </div>
-        {showRevenueTable && renderDataTable(chartData, currentLabel, true)}
-      </div>
+      <GraphTemplate
+        config={config}
+        filterValue={revenueFilter}
+        onFilterChange={(value) => setRevenueFilter(value as 'all' | 'early-stage' | 'later-stage')}
+      />
     )
   }
 
-  // Render filterable employees chart with clickable filter boxes
-  const renderFilterableEmployeesChart = () => {
+  // Build employees chart config for GraphTemplate
+  const buildEmployeesChartConfig = (): GraphTemplateConfig | null => {
     if (!allData || allData.length === 0) return null
 
     // Find employees columns
@@ -998,24 +953,24 @@ const ExploreData = () => {
         .filter(row => {
           const value = row[selectedColumn]
           return value !== undefined && typeof value === 'number' && value >= 0
-      })
-      .map(row => {
+        })
+        .map(row => {
           const year = row[yearKey] || 'N/A'
           const value = row[selectedColumn]
-        return {
-          name: String(year),
+          return {
+            name: String(year),
             value: value,
-          originalValue: value
-        }
-      })
-      .sort((a, b) => {
-        const yearA = parseInt(a.name)
-        const yearB = parseInt(b.name)
-        if (!isNaN(yearA) && !isNaN(yearB)) {
-          return yearA - yearB
-        }
-        return 0
-      })
+            originalValue: value
+          }
+        })
+        .sort((a, b) => {
+          const yearA = parseInt(a.name)
+          const yearB = parseInt(b.name)
+          if (!isNaN(yearA) && !isNaN(yearB)) {
+            return yearA - yearB
+          }
+          return 0
+        })
     }
 
     const chartData = getChartData()
@@ -1023,136 +978,85 @@ const ExploreData = () => {
     const yearRange = getYearRange(chartData)
     const chartTitle = employeesFilter === 'finland'
       ? `Employees in Finland ${yearRange}`
-      : `Employees of startup-based firms ${yearRange}`
+      : 'Number of Employees'
     
     const chartColors = getChartColors()
 
     // Get contextual text based on filter
-    const getContextText = () => {
-      if (employeesFilter === 'finland') {
+    const getContextText = (filter: string) => {
+      if (filter === 'finland') {
         return 'The number of employees working in Finland within startup-based firms has shown significant growth over the years. This metric reflects the local employment impact of the Finnish startup ecosystem and demonstrates how these companies contribute to job creation within the country.'
       } else {
         return 'The total number of employees in startup-based firms has grown substantially over the past two decades. This growth reflects the expanding scale and impact of the Finnish startup ecosystem, contributing to employment opportunities both domestically and internationally.'
       }
     }
 
-    const contextText = getContextText()
-
-    // Determine x-axis interval based on screen size
-    const getXAxisInterval = () => {
-      if (windowWidth >= 1024) {
-        return 0 // Show all years on large screens
-      } else if (windowWidth >= 768) {
-        return 1 // Show every 2nd year on medium screens
-      } else {
-        return 2 // Show every 3rd year on small screens
-      }
+    // Build filter options
+    const filterOptions = [
+      { value: 'all', label: 'All Employees' }
+    ]
+    if (employeesInFinlandCol) {
+      filterOptions.push({ value: 'finland', label: 'In Finland' })
     }
 
+    return {
+      data: chartData,
+      title: chartTitle,
+      dataLabel: currentLabel,
+      filtersConfig: {
+        enabled: true,
+        options: filterOptions,
+        defaultFilter: 'all',
+        filterKey: 'employeesFilter'
+      },
+      yAxisConfig: {
+        formatter: (value: number) => value.toLocaleString(),
+        width: 35
+      },
+      tooltipConfig: {
+        formatter: (_value: number, originalValue: number, label: string) => {
+          return [originalValue.toLocaleString(), label]
+        }
+      },
+      styleConfig: {
+        strokeColor: '#A580F2',
+        gradientId: 'gradient-filterable-employees',
+        gradientStartColor: '#A580F2',
+        gradientEndColor: '#A580F2',
+        gradientStartOpacity: 0.3,
+        gradientEndOpacity: 0.05,
+        strokeWidth: 2
+      },
+      contextText: getContextText,
+      onShowTable: () => {
+        const newValue = !showEmployeesTable
+        setShowEmployeesTable(newValue)
+      },
+      onFullscreen: () => setFullscreenChart('employees'),
+      showTable: showEmployeesTable,
+      chartColors,
+      windowWidth,
+      getXAxisInterval,
+      isRevenueValue: false
+    }
+  }
+
+  // Render filterable employees chart using GraphTemplate
+  const renderFilterableEmployeesChart = () => {
+    const config = buildEmployeesChartConfig()
+    if (!config) return null
+
     return (
-      <div className="chart-card chart-card-filterable chart-card-with-text" style={{ gridColumn: '1 / -1' }}>
-        <div className="chart-header">
-          <h3 className="chart-card-title">{chartTitle}</h3>
-        </div>
-        <div className="chart-content-wrapper">
-          <div className="chart-column">
-            <div className="chart-wrapper chart-wrapper-grid">
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData} margin={{ bottom: 15, top: 10, right: 10, left: 10 }}>
-                  <defs>
-                    <linearGradient id="gradient-filterable-employees" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#A580F2" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#A580F2" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={40}
-                    interval={getXAxisInterval()}
-                  />
-                  <YAxis 
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                    tickFormatter={(value) => value.toLocaleString()}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: chartColors.tooltipBg, 
-                      border: 'none', 
-                      borderRadius: '8px',
-                      color: chartColors.tooltipText
-                    }}
-                    formatter={(value: number) => {
-                      return [value.toLocaleString(), currentLabel]
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#A580F2" 
-                    fill="url(#gradient-filterable-employees)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="chart-actions">
-              <button
-                className={`action-button ${showEmployeesTable ? 'active' : ''}`}
-                onClick={() => setShowEmployeesTable(!showEmployeesTable)}
-                title={showEmployeesTable ? 'Hide Data Table' : 'Show Data Table'}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
-                </svg>
-              </button>
-              <button
-                className="action-button"
-                onClick={() => setFullscreenChart('employees')}
-                title="Open in fullscreen"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className="chart-sidebar">
-            <div className="chart-filters">
-              <button
-                className={`filter-button ${employeesFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setEmployeesFilter('all')}
-              >
-                <span className="filter-label">All Employees</span>
-              </button>
-              {employeesInFinlandCol && (
-                <button
-                  className={`filter-button ${employeesFilter === 'finland' ? 'active' : ''}`}
-                  onClick={() => setEmployeesFilter('finland')}
-                >
-                  <span className="filter-label">In Finland</span>
-                </button>
-              )}
-            </div>
-            {contextText && (
-              <div className="chart-context-text">
-                <p>{contextText}</p>
-              </div>
-            )}
-          </div>
-        </div>
-        {showEmployeesTable && renderDataTable(chartData, currentLabel, false)}
-      </div>
+      <GraphTemplate
+        config={config}
+        filterValue={employeesFilter}
+        onFilterChange={(value) => setEmployeesFilter(value as 'all' | 'finland')}
+      />
     )
   }
 
-  // Render filterable firms chart with clickable filter boxes
-  const renderFilterableFirmsChart = () => {
+  // Build firms chart config for GraphTemplate
+  const buildFirmsChartConfig = (): GraphTemplateConfig | null => {
     if (!allData || allData.length === 0) return null
 
     // Find firms columns
@@ -1202,9 +1106,9 @@ const ExploreData = () => {
       let selectedColumn = firmsCol
       if (firmsFilter === 'finland' && firmsInFinlandCol) {
         selectedColumn = firmsInFinlandCol
-      } else if (firmsFilter === 'startups' && numberStartupsCol) {
+      } else if (firmsFilter === 'early-stage' && numberStartupsCol) {
         selectedColumn = numberStartupsCol
-      } else if (firmsFilter === 'scaleups' && numberScaleupsCol) {
+      } else if (firmsFilter === 'later-stage' && numberScaleupsCol) {
         selectedColumn = numberScaleupsCol
       }
 
@@ -1236,165 +1140,104 @@ const ExploreData = () => {
     let currentLabel = 'Total Firms'
     if (firmsFilter === 'finland') {
       currentLabel = 'Firms in Finland'
-    } else if (firmsFilter === 'startups') {
-      currentLabel = 'Number of Startups'
-    } else if (firmsFilter === 'scaleups') {
-      currentLabel = 'Number of Scaleups'
+    } else if (firmsFilter === 'early-stage') {
+      currentLabel = 'Number of Early-Stage Firms'
+    } else if (firmsFilter === 'later-stage') {
+      currentLabel = 'Number of Later-Stage Firms'
     }
     
     const yearRange = getYearRange(chartData)
-    let chartTitle = `Number of startup-based firms ${yearRange}`
+    let chartTitle = 'Active firms'
     if (firmsFilter === 'finland') {
       chartTitle = `Firms in Finland ${yearRange}`
-    } else if (firmsFilter === 'startups') {
-      chartTitle = `Number of startups ${yearRange}`
-    } else if (firmsFilter === 'scaleups') {
-      chartTitle = `Number of scaleups ${yearRange}`
+    } else if (firmsFilter === 'early-stage') {
+      chartTitle = 'Active firms'
+    } else if (firmsFilter === 'later-stage') {
+      chartTitle = 'Active firms'
     }
     
     const chartColors = getChartColors()
 
     // Get contextual text based on filter
-    const getContextText = () => {
-      if (firmsFilter === 'finland') {
+    const getContextText = (filter: string) => {
+      if (filter === 'finland') {
         return 'The number of firms operating in Finland within the startup ecosystem has experienced steady growth. This metric highlights the increasing presence of startup companies within the Finnish market and their contribution to the local economy.'
-      } else if (firmsFilter === 'startups') {
-        return 'The number of startups in the Finnish ecosystem represents the early-stage companies that are driving innovation and growth. These companies are in their formative years, developing products and services that contribute to Finland\'s position as a leading innovation hub.'
-      } else if (firmsFilter === 'scaleups') {
-        return 'The number of scaleups reflects the maturing segment of the Finnish startup ecosystem. These companies have successfully navigated their early stages and are now experiencing rapid growth, contributing significantly to job creation and economic development in Finland.'
+      } else if (filter === 'early-stage') {
+        return 'The number of early-stage firms in the Finnish ecosystem represents the early-stage companies that are driving innovation and growth. These companies are in their formative years, developing products and services that contribute to Finland\'s position as a leading innovation hub.'
+      } else if (filter === 'later-stage') {
+        return 'The number of later-stage firms reflects the maturing segment of the Finnish startup ecosystem. These companies have successfully navigated their early stages and are now experiencing rapid growth, contributing significantly to job creation and economic development in Finland.'
       } else {
         return 'The total number of firms in the Finnish startup ecosystem has grown significantly over the years. This growth reflects the expanding entrepreneurial activity and the increasing number of companies contributing to Finland\'s innovation landscape. The ecosystem continues to attract new ventures and support their development.'
       }
     }
 
-    const contextText = getContextText()
-
-    // Determine x-axis interval based on screen size
-    const getXAxisInterval = () => {
-      if (windowWidth >= 1024) {
-        return 0 // Show all years on large screens
-      } else if (windowWidth >= 768) {
-        return 1 // Show every 2nd year on medium screens
-      } else {
-        return 2 // Show every 3rd year on small screens
-      }
+    // Build filter options
+    const filterOptions = [
+      { value: 'all', label: 'All Firms' }
+    ]
+    if (firmsInFinlandCol) {
+      filterOptions.push({ value: 'finland', label: 'In Finland' })
     }
-    
+    if (numberStartupsCol) {
+      filterOptions.push({ value: 'early-stage', label: 'Early-Stage' })
+    }
+    if (numberScaleupsCol) {
+      filterOptions.push({ value: 'later-stage', label: 'Later-Stage' })
+    }
+
+    return {
+      data: chartData,
+      title: chartTitle,
+      dataLabel: currentLabel,
+      filtersConfig: {
+        enabled: true,
+        options: filterOptions,
+        defaultFilter: 'all',
+        filterKey: 'firmsFilter'
+      },
+      yAxisConfig: {
+        formatter: (value: number) => value.toLocaleString(),
+        width: 35
+      },
+      tooltipConfig: {
+        formatter: (_value: number, originalValue: number, label: string) => {
+          return [originalValue.toLocaleString(), label]
+        }
+      },
+      styleConfig: {
+        strokeColor: '#A580F2',
+        gradientId: 'gradient-filterable-firms',
+        gradientStartColor: '#A580F2',
+        gradientEndColor: '#A580F2',
+        gradientStartOpacity: 0.3,
+        gradientEndOpacity: 0.05,
+        strokeWidth: 2
+      },
+      contextText: getContextText,
+      onShowTable: () => {
+        const newValue = !showFirmsTable
+        setShowFirmsTable(newValue)
+      },
+      onFullscreen: () => setFullscreenChart('firms'),
+      showTable: showFirmsTable,
+      chartColors,
+      windowWidth,
+      getXAxisInterval,
+      isRevenueValue: false
+    }
+  }
+
+  // Render filterable firms chart using GraphTemplate
+  const renderFilterableFirmsChart = () => {
+    const config = buildFirmsChartConfig()
+    if (!config) return null
+
     return (
-      <div className="chart-card chart-card-filterable chart-card-with-text" style={{ gridColumn: '1 / -1' }}>
-        <div className="chart-header">
-          <h3 className="chart-card-title">{chartTitle}</h3>
-        </div>
-        <div className="chart-content-wrapper">
-          <div className="chart-column">
-            <div className="chart-wrapper chart-wrapper-grid">
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData} margin={{ bottom: 15, top: 10, right: 10, left: 10 }}>
-                  <defs>
-                    <linearGradient id="gradient-filterable-firms" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#A580F2" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#A580F2" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={40}
-                    interval={getXAxisInterval()}
-                  />
-                  <YAxis 
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                    tickFormatter={(value) => value.toLocaleString()}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: chartColors.tooltipBg, 
-                      border: 'none', 
-                      borderRadius: '8px',
-                      color: chartColors.tooltipText
-                    }}
-                    formatter={(value: number) => {
-                      return [value.toLocaleString(), currentLabel]
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#A580F2" 
-                    fill="url(#gradient-filterable-firms)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="chart-actions">
-              <button
-                className={`action-button ${showFirmsTable ? 'active' : ''}`}
-                onClick={() => setShowFirmsTable(!showFirmsTable)}
-                title={showFirmsTable ? 'Hide Data Table' : 'Show Data Table'}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
-                </svg>
-              </button>
-              <button
-                className="action-button"
-                onClick={() => setFullscreenChart('firms')}
-                title="Open in fullscreen"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className="chart-sidebar">
-            <div className="chart-filters">
-              <button
-                className={`filter-button ${firmsFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setFirmsFilter('all')}
-              >
-                <span className="filter-label">All Firms</span>
-              </button>
-              {firmsInFinlandCol && (
-                <button
-                  className={`filter-button ${firmsFilter === 'finland' ? 'active' : ''}`}
-                  onClick={() => setFirmsFilter('finland')}
-                >
-                  <span className="filter-label">In Finland</span>
-                </button>
-              )}
-              {numberStartupsCol && (
-                <button
-                  className={`filter-button ${firmsFilter === 'startups' ? 'active' : ''}`}
-                  onClick={() => setFirmsFilter('startups')}
-                >
-                  <span className="filter-label">Startups</span>
-                </button>
-              )}
-              {numberScaleupsCol && (
-                <button
-                  className={`filter-button ${firmsFilter === 'scaleups' ? 'active' : ''}`}
-                  onClick={() => setFirmsFilter('scaleups')}
-                >
-                  <span className="filter-label">Scaleups</span>
-                </button>
-              )}
-            </div>
-            {contextText && (
-              <div className="chart-context-text">
-                <p>{contextText}</p>
-              </div>
-            )}
-          </div>
-        </div>
-        {showFirmsTable && renderDataTable(chartData, currentLabel, false)}
-      </div>
+      <GraphTemplate
+        config={config}
+        filterValue={firmsFilter}
+        onFilterChange={(value) => setFirmsFilter(value as 'all' | 'finland' | 'early-stage' | 'later-stage')}
+      />
     )
   }
 
@@ -1426,7 +1269,7 @@ const ExploreData = () => {
       let selectedColumn = revenueCol
       if (revenueFilter === 'early-stage' && earlyStageRevenueCol) {
         selectedColumn = earlyStageRevenueCol
-      } else if (revenueFilter === 'scaleup' && scaleupRevenueCol) {
+      } else if (revenueFilter === 'later-stage' && scaleupRevenueCol) {
         selectedColumn = scaleupRevenueCol
       }
       
@@ -1463,21 +1306,20 @@ const ExploreData = () => {
       
       if (revenueFilter === 'early-stage') {
         currentLabel = 'Early Stage Revenue'
-      } else if (revenueFilter === 'scaleup') {
-        currentLabel = 'Scaleup Revenue'
+      } else if (revenueFilter === 'later-stage') {
+        currentLabel = 'Later-Stage Revenue'
       } else {
         currentLabel = 'Total Revenue'
       }
       
       isRevenueValue = true
-      const revenueYearRange = getYearRange(chartData)
       
       if (revenueFilter === 'early-stage') {
-        chartTitle = `Revenue of early stage startups ${revenueYearRange}`
-      } else if (revenueFilter === 'scaleup') {
-        chartTitle = `Revenue of scaleups ${revenueYearRange}`
+        chartTitle = 'Startup Revenue'
+      } else if (revenueFilter === 'later-stage') {
+        chartTitle = 'Startup Revenue'
       } else {
-        chartTitle = `Revenue of startup-based firms ${revenueYearRange}`
+        chartTitle = 'Startup Revenue'
       }
     } else if (fullscreenChart === 'employees') {
       const employeesCol = Object.keys(allData[0] || {}).find(key => {
@@ -1535,7 +1377,7 @@ const ExploreData = () => {
       const employeesYearRange = getYearRange(chartData)
       chartTitle = employeesFilter === 'finland'
         ? `Employees in Finland ${employeesYearRange}`
-        : `Employees of startup-based firms ${employeesYearRange}`
+        : 'Number of Employees'
     } else if (fullscreenChart === 'firms') {
       const firmsCol = Object.keys(allData[0] || {}).find(key => {
         const keyLower = key.toLowerCase()
@@ -1564,9 +1406,9 @@ const ExploreData = () => {
       let selectedColumn = firmsCol
       if (firmsFilter === 'finland' && firmsInFinlandCol) {
         selectedColumn = firmsInFinlandCol
-      } else if (firmsFilter === 'startups' && numberStartupsCol) {
+      } else if (firmsFilter === 'early-stage' && numberStartupsCol) {
         selectedColumn = numberStartupsCol
-      } else if (firmsFilter === 'scaleups' && numberScaleupsCol) {
+      } else if (firmsFilter === 'later-stage' && numberScaleupsCol) {
         selectedColumn = numberScaleupsCol
       }
       
@@ -1603,10 +1445,10 @@ const ExploreData = () => {
       
       if (firmsFilter === 'finland') {
         currentLabel = 'Firms in Finland'
-      } else if (firmsFilter === 'startups') {
-        currentLabel = 'Number of Startups'
-      } else if (firmsFilter === 'scaleups') {
-        currentLabel = 'Number of Scaleups'
+      } else if (firmsFilter === 'early-stage') {
+        currentLabel = 'Number of Early-Stage Firms'
+      } else if (firmsFilter === 'later-stage') {
+        currentLabel = 'Number of Later-Stage Firms'
       } else {
         currentLabel = 'Total Firms'
       }
@@ -1615,12 +1457,12 @@ const ExploreData = () => {
       
       if (firmsFilter === 'finland') {
         chartTitle = `Firms in Finland ${firmsYearRange}`
-      } else if (firmsFilter === 'startups') {
-        chartTitle = `Number of startups ${firmsYearRange}`
-      } else if (firmsFilter === 'scaleups') {
-        chartTitle = `Number of scaleups ${firmsYearRange}`
+      } else if (firmsFilter === 'early-stage') {
+        chartTitle = 'Active firms'
+      } else if (firmsFilter === 'later-stage') {
+        chartTitle = 'Active firms'
       } else {
-        chartTitle = `Number of startup-based firms ${firmsYearRange}`
+        chartTitle = 'Active firms'
       }
     } else if (fullscreenChart === 'gender') {
       if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
@@ -1640,8 +1482,7 @@ const ExploreData = () => {
         chartData = genderComparisonData
         currentLabel = 'Employees'
         isRevenueValue = false
-        const yearRange = getYearRange(chartData)
-        chartTitle = `Gender distribution of employees in startups founded after 2010 (${yearRange})`
+        chartTitle = 'Gender distribution of startup workers'
       }
     } else if (fullscreenChart === 'immigration') {
       if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
@@ -1665,8 +1506,7 @@ const ExploreData = () => {
         }))
         currentLabel = 'Employees'
         isRevenueValue = false
-        const yearRange = getYearRange(immigrationComparisonData)
-        chartTitle = `Employees by immigration status in startups founded after 2010 (${yearRange})`
+        chartTitle = 'Immigration status'
       }
     } else if (fullscreenChart === 'rdi' && fullscreenRdiMetric) {
       const metric = fullscreenRdiMetric
@@ -1721,12 +1561,43 @@ const ExploreData = () => {
       const formattedName = formatColumnName(metric)
       currentLabel = formattedName
       isRevenueValue = isRdiRevenue
-      const rdiYearRange = getYearRange(chartData)
-      chartTitle = `${formattedName} ${rdiYearRange}`
+      chartTitle = 'R&D investments'
     }
 
     // Use the same interval function for fullscreen (can be adjusted if needed)
     const getFullscreenXAxisInterval = getXAxisInterval
+
+    // Don't render if no chart data
+    if (chartData.length === 0) {
+      return (
+        <div className="fullscreen-modal-overlay" onClick={() => {
+          setFullscreenChart(null)
+          setFullscreenRdiMetric(null)
+        }}>
+          <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="fullscreen-modal-header">
+              <h2>{chartTitle || 'Chart'}</h2>
+              <button
+                className="fullscreen-close-button"
+                onClick={() => {
+                  setFullscreenChart(null)
+                  setFullscreenRdiMetric(null)
+                }}
+                title="Close fullscreen"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div className="fullscreen-chart-wrapper" style={{ minHeight: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p>No data available for this chart.</p>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div className="fullscreen-modal-overlay" onClick={() => {
@@ -1751,7 +1622,7 @@ const ExploreData = () => {
             </button>
           </div>
           <div className="fullscreen-chart-wrapper">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={600}>
               {fullscreenChart === 'immigration' && immigrationShareView === 'none' && immigrationComparisonData.length > 0 ? (
                 <BarChart data={immigrationComparisonData.filter(row => {
                   const result: any = { name: row.name }
@@ -1762,7 +1633,7 @@ const ExploreData = () => {
                   name: row.name,
                   ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
                   ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
-                }))} margin={{ bottom: 60, top: 20, right: 30, left: 30 }}>
+                }))} margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 60, top: 20, right: 30, left: 30 }}>
                   <defs>
                     <linearGradient id="gradient-finnish-fullscreen" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#3498DB" stopOpacity={0.9} />
@@ -1785,7 +1656,8 @@ const ExploreData = () => {
                   />
                   <YAxis 
                     stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 12 }}
+                    tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 9 : 12 }}
+                    width={windowWidth <= 640 ? 35 : undefined}
                     tickFormatter={(value) => value.toLocaleString()}
                   />
                   <Tooltip 
@@ -1822,7 +1694,7 @@ const ExploreData = () => {
                   name: row.name,
                   ...(showMaleBar ? { Male: row.Male } : {}),
                   ...(showFemaleBar ? { Female: row.Female } : {})
-                }))} margin={{ bottom: 60, top: 20, right: 30, left: 30 }}>
+                }))} margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 60, top: 20, right: 30, left: 30 }}>
                   <defs>
                     <linearGradient id="gradient-male-fullscreen" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4A90E2" stopOpacity={0.9} />
@@ -1845,7 +1717,8 @@ const ExploreData = () => {
                   />
                   <YAxis 
                     stroke={chartColors.axis}
-                    tick={{ fill: chartColors.tick, fontSize: 12 }}
+                    tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 9 : 12 }}
+                    width={windowWidth <= 640 ? 35 : undefined}
                     tickFormatter={(value) => value.toLocaleString()}
                   />
                   <Tooltip 
@@ -1873,7 +1746,7 @@ const ExploreData = () => {
                   )}
                 </BarChart>
               ) : (
-                <AreaChart data={chartData} margin={{ bottom: 60, top: 20, right: 30, left: 30 }}>
+                <AreaChart data={chartData} margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 60, top: 20, right: 30, left: 30 }}>
                   <defs>
                     <linearGradient id="gradient-fullscreen" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={
@@ -2143,102 +2016,68 @@ const ExploreData = () => {
                       const chartContext = getChartContext(metric)
                       const formattedName = formatColumnName(metric)
                       const chartColors = getChartColors()
-                      const yearRange = getYearRange(chartData)
-                      const chartTitle = `${formattedName} ${yearRange}`
+                      const chartTitle = 'R&D investments'
+                      
+                      // Build R&D chart config
+                      const rdiConfig: GraphTemplateConfig = {
+                        data: chartData,
+                        title: chartTitle,
+                        dataLabel: formattedName,
+                        filtersConfig: {
+                          enabled: false, // R&D charts have filters disabled
+                          options: [],
+                          defaultFilter: 'all',
+                          filterKey: 'rdiFilter'
+                        },
+                        yAxisConfig: {
+                          formatter: (value: number) => {
+                            if (isRevenue) {
+                              return `€${value.toFixed(1)}B`
+                            }
+                            return value.toLocaleString()
+                          },
+                          width: 35
+                        },
+                        tooltipConfig: {
+                          formatter: (_value: number, originalValue: number, label: string) => {
+                            if (isRevenue) {
+                              const billions = originalValue / 1000000000
+                              return [`€${billions.toFixed(2)}B`, label]
+                            }
+                            return [originalValue.toLocaleString(), label]
+                          }
+                        },
+                        styleConfig: {
+                          strokeColor: '#A580F2',
+                          gradientId: `gradient-rdi-${metric}`,
+                          gradientStartColor: '#A580F2',
+                          gradientEndColor: '#A580F2',
+                          gradientStartOpacity: 0.3,
+                          gradientEndOpacity: 0.05,
+                          strokeWidth: 2
+                        },
+                        contextText: chartContext || undefined,
+                        onShowTable: () => {
+                          setShowRdiTable(prev => ({ ...prev, [metric]: !prev[metric] }))
+                        },
+                        onFullscreen: () => {
+                          setFullscreenChart('rdi')
+                          setFullscreenRdiMetric(metric)
+                        },
+                        showTable: showRdiTable[metric] || false,
+                        chartColors,
+                        windowWidth,
+                        getXAxisInterval,
+                        isRevenueValue: isRevenue
+                      }
                       
                       return (
-                        <div key={`rdi-${metric}`} className={`chart-card ${chartContext ? 'chart-card-with-text' : ''}`}>
-                          <div className="chart-header">
-                          <h3 className="chart-card-title">
-                              {chartTitle}
-                          </h3>
-                          </div>
-                          <div className="chart-content-wrapper">
-                            <div className="chart-wrapper chart-wrapper-grid">
-                              <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={chartData} margin={{ bottom: 15, top: 10, right: 10, left: 10 }}>
-                                  <defs>
-                                    <linearGradient id={`gradient-rdi-${metric}`} x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#A580F2" stopOpacity={0.3} />
-                                      <stop offset="100%" stopColor="#A580F2" stopOpacity={0.05} />
-                                    </linearGradient>
-                                  </defs>
-                                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                  <XAxis 
-                                    dataKey="name" 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={40}
-                                    interval={getXAxisInterval()}
-                                  />
-                                  <YAxis 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    tickFormatter={(value) => {
-                                      if (isRevenue) {
-                                        return `€${value.toFixed(1)}B`
-                                      }
-                                      return value.toLocaleString()
-                                    }}
-                                  />
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: chartColors.tooltipBg, 
-                                      border: 'none', 
-                                      borderRadius: '8px',
-                                      color: chartColors.tooltipText
-                                    }}
-                                    formatter={(value: number, _name: string, props: any) => {
-                                      if (isRevenue) {
-                                        const billions = props.payload.originalValue / 1000000000
-                                        return [`€${billions.toFixed(2)}B`, formattedName]
-                                      }
-                                      return [value.toLocaleString(), formattedName]
-                                    }}
-                                  />
-                                  <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke="#A580F2" 
-                                    fill={`url(#gradient-rdi-${metric})`}
-                                    strokeWidth={2}
-                                  />
-                                </AreaChart>
-                              </ResponsiveContainer>
-                            </div>
-                            {chartContext && (
-                              <div className="chart-context-text">
-                                <p>{chartContext}</p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="chart-actions">
-                            <button
-                              className={`action-button ${showRdiTable[metric] ? 'active' : ''}`}
-                              onClick={() => setShowRdiTable(prev => ({ ...prev, [metric]: !prev[metric] }))}
-                              title={showRdiTable[metric] ? 'Hide Data Table' : 'Show Data Table'}
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
-                              </svg>
-                            </button>
-                            <button
-                              className="action-button"
-                              onClick={() => {
-                                setFullscreenChart('rdi')
-                                setFullscreenRdiMetric(metric)
-                              }}
-                              title="Open in fullscreen"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                              </svg>
-                            </button>
-                          </div>
-                          {showRdiTable[metric] && renderDataTable(chartData, formattedName, isRevenue)}
-                        </div>
+                        <GraphTemplate
+                          key={`rdi-${metric}`}
+                          config={rdiConfig}
+                          filterValue="all"
+                          onFilterChange={() => {}}
+                        />
                       )
                     })}
                   </div>
@@ -2278,8 +2117,10 @@ const ExploreData = () => {
                       })
                     : null
                   
-                  // Calculate gender statistics for contextual text
-                  const getGenderAnalysis = () => {
+                  // Build gender chart config
+                  const buildGenderChartConfig = (): BarChartTemplateConfig | null => {
+                    // Calculate gender statistics for contextual text
+                    const getGenderAnalysis = (): string => {
                     if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
                       const latest = shareOfFemalesData[shareOfFemalesData.length - 1]
                       const earliest = shareOfFemalesData[0]
@@ -2359,39 +2200,218 @@ const ExploreData = () => {
                     return ''
                   }
                   
-                  const genderAnalysisText = getGenderAnalysis()
+                    const genderAnalysisText = getGenderAnalysis()
+                    
+                    // Determine year range and chart title based on view
+                    let yearRange = ''
+                    let chartTitle = ''
+                    let chartData: any[] = []
+                    let currentLabel = ''
+                    let isShareView = genderShareView !== 'none'
+                    
+                    // Prepare bar chart data with toggles
+                    const barChartData = genderComparisonData.map(row => ({
+                      name: row.name,
+                      ...(showMaleBar ? { Male: row.Male } : {}),
+                      ...(showFemaleBar ? { Female: row.Female } : {})
+                    }))
+                    
+                    if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
+                      chartData = shareOfMalesData
+                      yearRange = getYearRange(shareOfMalesData)
+                      chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
+                      currentLabel = 'Share of Males'
+                    } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
+                      chartData = shareOfFemalesData
+                      yearRange = getYearRange(shareOfFemalesData)
+                      chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
+                      currentLabel = 'Share of Females'
+                    } else if (genderComparisonData.length > 0) {
+                      // Bar chart view
+                      chartData = barChartData
+                      yearRange = getYearRange(genderComparisonData)
+                      chartTitle = 'Gender distribution of startup workers'
+                      currentLabel = 'Employees'
+                    } else {
+                      return null
+                    }
+                    
+                    // Determine chart color based on share view
+                    const getChartColor = () => {
+                      if (genderShareView === 'male-share') {
+                        return '#4A90E2' // Blue for male
+                      }
+                      return '#E94B7E' // Pink for female
+                    }
+                    
+                    const chartColor = getChartColor()
+                    
+                    // Build toggle buttons
+                    const toggleButtons = [
+                      {
+                        label: 'Male',
+                        isActive: genderShareView === 'none' && showMaleBar,
+                        onClick: () => {
+                          setGenderShareView('none')
+                          setShowMaleBar(!showMaleBar)
+                        }
+                      },
+                      {
+                        label: 'Female',
+                        isActive: genderShareView === 'none' && showFemaleBar,
+                        onClick: () => {
+                          setGenderShareView('none')
+                          setShowFemaleBar(!showFemaleBar)
+                        }
+                      }
+                    ]
+                    
+                    // Build view mode buttons
+                    const viewModeButtons = []
+                    if (shareOfMalesCol) {
+                      viewModeButtons.push({
+                        label: 'Share of Males',
+                        value: 'male-share',
+                        isActive: genderShareView === 'male-share',
+                        onClick: () => {
+                          setGenderShareView(genderShareView === 'male-share' ? 'none' : 'male-share')
+                        }
+                      })
+                    }
+                    if (shareOfFemalesCol) {
+                      viewModeButtons.push({
+                        label: 'Share of Females',
+                        value: 'female-share',
+                        isActive: genderShareView === 'female-share',
+                        onClick: () => {
+                          setGenderShareView(genderShareView === 'female-share' ? 'none' : 'female-share')
+                        }
+                      })
+                    }
+                    
+                    // Build table columns
+                    const tableColumns = isShareView 
+                      ? [{ key: 'value', label: currentLabel }]
+                      : [
+                          ...(showMaleBar ? [{ key: 'Male', label: 'Male' }] : []),
+                          ...(showFemaleBar ? [{ key: 'Female', label: 'Female' }] : [])
+                        ]
+                    
+                    // Build table data
+                    const tableData = isShareView
+                      ? chartData.map(row => ({ name: row.name, value: row.value }))
+                      : chartData
+                    
+                    const config: BarChartTemplateConfig = {
+                      data: chartData,
+                      title: chartTitle,
+                      dataLabel: currentLabel,
+                      chartType: isShareView ? 'area' : 'bar',
+                      barSeries: isShareView ? undefined : [
+                        {
+                          dataKey: 'Male',
+                          label: 'Male',
+                          color: '#4A90E2',
+                          gradientId: 'gradient-male-bar',
+                          gradientStartColor: '#4A90E2',
+                          gradientEndColor: '#4A90E2',
+                          gradientStartOpacity: 0.9,
+                          gradientEndOpacity: 0.6,
+                          visible: showMaleBar,
+                          onToggle: () => setShowMaleBar(!showMaleBar)
+                        },
+                        {
+                          dataKey: 'Female',
+                          label: 'Female',
+                          color: '#E94B7E',
+                          gradientId: 'gradient-female-bar',
+                          gradientStartColor: '#E94B7E',
+                          gradientEndColor: '#E94B7E',
+                          gradientStartOpacity: 0.9,
+                          gradientEndOpacity: 0.6,
+                          visible: showFemaleBar,
+                          onToggle: () => setShowFemaleBar(!showFemaleBar)
+                        }
+                      ],
+                      areaConfig: isShareView ? {
+                        dataKey: 'value',
+                        color: chartColor,
+                        gradientId: `gradient-${genderShareView}`,
+                        gradientStartColor: chartColor,
+                        gradientEndColor: chartColor,
+                        gradientStartOpacity: 0.3,
+                        gradientEndOpacity: 0.05
+                      } : undefined,
+                      filtersConfig: {
+                        enabled: true,
+                        toggleButtons,
+                        viewModeButtons
+                      },
+                      yAxisConfig: {
+                        formatter: (value: number) => isShareView ? `${value.toFixed(1)}%` : value.toLocaleString(),
+                        width: isShareView ? 35 : undefined
+                      },
+                      tooltipConfig: {
+                        formatter: (value: number, name: string) => {
+                          if (isShareView) {
+                            return [`${value.toFixed(2)}%`, currentLabel]
+                          }
+                          return [value.toLocaleString(), name]
+                        }
+                      },
+                      contextText: genderAnalysisText,
+                      onShowTable: () => {
+                        const newValue = !showGenderTable
+                        setShowGenderTable(newValue)
+                      },
+                      onFullscreen: () => setFullscreenChart('gender'),
+                      showTable: showGenderTable,
+                      chartColors,
+                      windowWidth,
+                      getXAxisInterval,
+                      isRevenueValue: false,
+                      tableData,
+                      tableColumns,
+                      renderTable: () => {
+                        if (!tableData || tableData.length === 0) return null
+                        return (
+                          <div className="chart-data-table-container">
+                            <table className="chart-data-table">
+                              <thead>
+                                <tr>
+                                  <th>Year</th>
+                                  {tableColumns.map(col => (
+                                    <th key={col.key}>{col.label}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {tableData.map((row, index) => (
+                                  <tr key={index}>
+                                    <td>{row.name}</td>
+                                    {isShareView ? (
+                                      <td>{row.value.toFixed(2)}%</td>
+                                    ) : (
+                                      <>
+                                        {showMaleBar && <td>{row.Male?.toLocaleString() || '-'}</td>}
+                                        {showFemaleBar && <td>{row.Female?.toLocaleString() || '-'}</td>}
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )
+                      }
+                    }
+                    
+                    return config
+                  }
                   
-                  // Determine year range and chart title based on view
-                  let yearRange = ''
-                  let chartTitle = ''
-                  let chartData: any[] = []
-                  let currentLabel = ''
-                  let isShareView = genderShareView !== 'none'
+                  const genderConfig = buildGenderChartConfig()
                   
-                  // Prepare bar chart data with toggles
-                  const barChartData = genderComparisonData.map(row => ({
-                    name: row.name,
-                    ...(showMaleBar ? { Male: row.Male } : {}),
-                    ...(showFemaleBar ? { Female: row.Female } : {})
-                  }))
-                  
-                  if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
-                    chartData = shareOfMalesData
-                    yearRange = getYearRange(shareOfMalesData)
-                    chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
-                    currentLabel = 'Share of Males'
-                  } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
-                    chartData = shareOfFemalesData
-                    yearRange = getYearRange(shareOfFemalesData)
-                    chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
-                    currentLabel = 'Share of Females'
-                  } else if (genderComparisonData.length > 0) {
-                    // Bar chart view
-                    chartData = barChartData
-                    yearRange = getYearRange(genderComparisonData)
-                    chartTitle = `Gender distribution of employees in startups founded after 2010 (${yearRange})`
-                    currentLabel = 'Employees'
-                  } else {
+                  if (!genderConfig) {
                     return (
                       <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
                         <p>Gender data not available.</p>
@@ -2402,227 +2422,7 @@ const ExploreData = () => {
                     )
                   }
                   
-                  // Determine chart color based on share view
-                  const getChartColor = () => {
-                    if (genderShareView === 'male-share') {
-                      return '#4A90E2' // Blue for male
-                    }
-                    return '#E94B7E' // Pink for female
-                  }
-                  
-                  const chartColor = getChartColor()
-                  
-                  // Render chart based on view type
-                  return (
-                    <div className="chart-card chart-card-with-text" style={{ marginBottom: '2rem', gridColumn: '1 / -1' }}>
-                      <div className="chart-header">
-                        <h3 className="chart-card-title">{chartTitle}</h3>
-                      </div>
-                      <div className="chart-content-wrapper">
-                        <div className="chart-column">
-                          <div className="chart-wrapper chart-wrapper-grid" style={{ height: '400px' }}>
-                            <ResponsiveContainer width="100%" height={400}>
-                              {isShareView ? (
-                                // Area chart for share views
-                                <AreaChart data={chartData} margin={{ bottom: 50, top: 20, right: 20, left: 20 }}>
-                                  <defs>
-                                    <linearGradient id={`gradient-${genderShareView}`} x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor={chartColor} stopOpacity={0.3} />
-                                      <stop offset="100%" stopColor={chartColor} stopOpacity={0.05} />
-                                    </linearGradient>
-                                  </defs>
-                                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                  <XAxis 
-                                    dataKey="name" 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={80}
-                                    interval={getXAxisInterval()}
-                                  />
-                                  <YAxis 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    tickFormatter={(value) => `${value.toFixed(1)}%`}
-                                  />
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: chartColors.tooltipBg, 
-                                      border: 'none', 
-                                      borderRadius: '8px',
-                                      color: chartColors.tooltipText
-                                    }}
-                                    formatter={(value: number) => [`${value.toFixed(2)}%`, currentLabel]}
-                                  />
-                                  <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke={chartColor} 
-                                    fill={`url(#gradient-${genderShareView})`}
-                                    strokeWidth={2}
-                                  />
-                                </AreaChart>
-                              ) : (
-                                // Bar chart for raw numbers
-                                <BarChart data={chartData} margin={{ bottom: 50, top: 20, right: 20, left: 20 }}>
-                                  <defs>
-                                    <linearGradient id="gradient-male-bar" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#4A90E2" stopOpacity={0.9} />
-                                      <stop offset="100%" stopColor="#4A90E2" stopOpacity={0.6} />
-                                    </linearGradient>
-                                    <linearGradient id="gradient-female-bar" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#E94B7E" stopOpacity={0.9} />
-                                      <stop offset="100%" stopColor="#E94B7E" stopOpacity={0.6} />
-                                    </linearGradient>
-                                  </defs>
-                                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                  <XAxis 
-                                    dataKey="name" 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={80}
-                                    interval={getXAxisInterval()}
-                                  />
-                                  <YAxis 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    tickFormatter={(value) => value.toLocaleString()}
-                                  />
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: chartColors.tooltipBg, 
-                                      border: 'none', 
-                                      borderRadius: '8px',
-                                      color: chartColors.tooltipText
-                                    }}
-                                    formatter={(value: number, name: string) => [value.toLocaleString(), name]}
-                                  />
-                                  {showMaleBar && (
-                                    <Bar 
-                                      dataKey="Male" 
-                                      fill="url(#gradient-male-bar)"
-                                      radius={[4, 4, 0, 0]}
-                                    />
-                                  )}
-                                  {showFemaleBar && (
-                                    <Bar 
-                                      dataKey="Female" 
-                                      fill="url(#gradient-female-bar)"
-                                      radius={[4, 4, 0, 0]}
-                                    />
-                                  )}
-                                </BarChart>
-                              )}
-                            </ResponsiveContainer>
-                          </div>
-                          <div className="chart-actions">
-                            <button
-                              className={`action-button ${showGenderTable ? 'active' : ''}`}
-                              onClick={() => setShowGenderTable(!showGenderTable)}
-                              title={showGenderTable ? 'Hide Data Table' : 'Show Data Table'}
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
-                              </svg>
-                            </button>
-                            <button
-                              className="action-button"
-                              onClick={() => setFullscreenChart('gender')}
-                              title="Open in fullscreen"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                        <div className="chart-sidebar">
-                          <div className="chart-filters">
-                            <button
-                              className={`filter-button ${genderShareView === 'none' && showMaleBar ? 'active' : ''}`}
-                              onClick={() => {
-                                setGenderShareView('none')
-                                setShowMaleBar(!showMaleBar)
-                              }}
-                            >
-                              <span className="filter-label">Male</span>
-                            </button>
-                            <button
-                              className={`filter-button ${genderShareView === 'none' && showFemaleBar ? 'active' : ''}`}
-                              onClick={() => {
-                                setGenderShareView('none')
-                                setShowFemaleBar(!showFemaleBar)
-                              }}
-                            >
-                              <span className="filter-label">Female</span>
-                            </button>
-                            {shareOfMalesCol && (
-                              <button
-                                className={`filter-button ${genderShareView === 'male-share' ? 'active' : ''}`}
-                                onClick={() => {
-                                  setGenderShareView(genderShareView === 'male-share' ? 'none' : 'male-share')
-                                }}
-                              >
-                                <span className="filter-label">Share of Males</span>
-                              </button>
-                            )}
-                            {shareOfFemalesCol && (
-                              <button
-                                className={`filter-button ${genderShareView === 'female-share' ? 'active' : ''}`}
-                                onClick={() => {
-                                  setGenderShareView(genderShareView === 'female-share' ? 'none' : 'female-share')
-                                }}
-                              >
-                                <span className="filter-label">Share of Females</span>
-                              </button>
-                            )}
-                          </div>
-                          {genderAnalysisText && (
-                            <div className="chart-context-text">
-                              <p>{genderAnalysisText}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {showGenderTable && chartData.length > 0 && (
-                        <div className="chart-data-table-container">
-                          <table className="chart-data-table">
-                            <thead>
-                              <tr>
-                                <th>Year</th>
-                                {isShareView ? (
-                                  <th>{currentLabel}</th>
-                                ) : (
-                                  <>
-                                    {showMaleBar && <th>Male</th>}
-                                    {showFemaleBar && <th>Female</th>}
-                                  </>
-                                )}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {chartData.map((row, index) => (
-                                <tr key={index}>
-                                  <td>{row.name}</td>
-                                  {isShareView ? (
-                                    <td>{row.value.toFixed(2)}%</td>
-                                  ) : (
-                                    <>
-                                      {showMaleBar && <td>{row.Male?.toLocaleString() || '-'}</td>}
-                                      {showFemaleBar && <td>{row.Female?.toLocaleString() || '-'}</td>}
-                                    </>
-                                  )}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )
+                  return <BarChartTemplate config={genderConfig} />
                 })()}
               </div>
             )}
@@ -2651,7 +2451,9 @@ const ExploreData = () => {
                       })
                     : null
                   
-                  const getImmigrationAnalysis = () => {
+                  // Build immigration chart config
+                  const buildImmigrationChartConfig = (): BarChartTemplateConfig | null => {
+                    const getImmigrationAnalysis = (): string => {
                     if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
                       const latest = shareOfFinnishData[shareOfFinnishData.length - 1]
                       const earliest = shareOfFinnishData[0]
@@ -2731,39 +2533,222 @@ const ExploreData = () => {
                     return ''
                   }
                   
-                  const immigrationAnalysisText = getImmigrationAnalysis()
+                    const immigrationAnalysisText = getImmigrationAnalysis()
+                    
+                    // Prepare bar chart data with toggles
+                    const barChartData = immigrationComparisonData.map(row => ({
+                      name: row.name,
+                      ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
+                      ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
+                    }))
+                    
+                    // Determine year range and chart title based on view
+                    let yearRange = ''
+                    let chartTitle = ''
+                    let chartData: any[] = []
+                    let currentLabel = ''
+                    let isShareView = immigrationShareView !== 'none'
+                    
+                    if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
+                      chartData = shareOfFinnishData
+                      yearRange = getYearRange(shareOfFinnishData)
+                      chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
+                      currentLabel = 'Share of Finnish'
+                    } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
+                      chartData = shareOfForeignData
+                      yearRange = getYearRange(shareOfForeignData)
+                      chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
+                      currentLabel = 'Share of Foreign'
+                    } else if (immigrationComparisonData.length > 0) {
+                      // Bar chart view
+                      chartData = barChartData
+                      yearRange = getYearRange(immigrationComparisonData)
+                      chartTitle = 'Immigration status'
+                      currentLabel = 'Employees'
+                    } else {
+                      return null
+                    }
+                    
+                    // Determine chart color based on share view
+                    const getChartColor = () => {
+                      if (immigrationShareView === 'finnish-share') {
+                        return '#3498DB' // Blue for Finnish
+                      }
+                      return '#9B59B6' // Purple for Foreign
+                    }
+                    
+                    const chartColor = getChartColor()
+                    
+                    // Build toggle buttons
+                    const toggleButtons = [
+                      {
+                        label: 'Finnish',
+                        isActive: immigrationShareView === 'none' && showFinnishBar,
+                        onClick: () => {
+                          setImmigrationShareView('none')
+                          setShowFinnishBar(!showFinnishBar)
+                        }
+                      },
+                      {
+                        label: 'Foreign',
+                        isActive: immigrationShareView === 'none' && showForeignBar,
+                        onClick: () => {
+                          setImmigrationShareView('none')
+                          setShowForeignBar(!showForeignBar)
+                        }
+                      }
+                    ]
+                    
+                    // Build view mode buttons
+                    const viewModeButtons = []
+                    if (shareOfFinnishCol) {
+                      viewModeButtons.push({
+                        label: 'Share of Finnish',
+                        value: 'finnish-share',
+                        isActive: immigrationShareView === 'finnish-share',
+                        onClick: () => {
+                          setImmigrationShareView(immigrationShareView === 'finnish-share' ? 'none' : 'finnish-share')
+                          setShowFinnishBar(true)
+                          setShowForeignBar(true)
+                        }
+                      })
+                    }
+                    if (shareOfForeignCol) {
+                      viewModeButtons.push({
+                        label: 'Share of Foreign',
+                        value: 'foreign-share',
+                        isActive: immigrationShareView === 'foreign-share',
+                        onClick: () => {
+                          setImmigrationShareView(immigrationShareView === 'foreign-share' ? 'none' : 'foreign-share')
+                          setShowFinnishBar(true)
+                          setShowForeignBar(true)
+                        }
+                      })
+                    }
+                    
+                    // Build table columns
+                    const tableColumns = isShareView 
+                      ? [{ key: 'value', label: currentLabel }]
+                      : [
+                          ...(showFinnishBar ? [{ key: 'Finnish', label: 'Finnish' }] : []),
+                          ...(showForeignBar ? [{ key: 'Foreign', label: 'Foreign' }] : [])
+                        ]
+                    
+                    // Build table data
+                    const tableData = isShareView
+                      ? chartData.map(row => ({ name: row.name, value: row.value }))
+                      : chartData
+                    
+                    const config: BarChartTemplateConfig = {
+                      data: chartData,
+                      title: chartTitle,
+                      dataLabel: currentLabel,
+                      chartType: isShareView ? 'area' : 'bar',
+                      barSeries: isShareView ? undefined : [
+                        {
+                          dataKey: 'Finnish',
+                          label: 'Finnish',
+                          color: '#3498DB',
+                          gradientId: 'gradient-finnish-bar-immigration',
+                          gradientStartColor: '#3498DB',
+                          gradientEndColor: '#3498DB',
+                          gradientStartOpacity: 0.9,
+                          gradientEndOpacity: 0.6,
+                          visible: showFinnishBar,
+                          onToggle: () => setShowFinnishBar(!showFinnishBar)
+                        },
+                        {
+                          dataKey: 'Foreign',
+                          label: 'Foreign',
+                          color: '#9B59B6',
+                          gradientId: 'gradient-foreign-bar-immigration',
+                          gradientStartColor: '#9B59B6',
+                          gradientEndColor: '#9B59B6',
+                          gradientStartOpacity: 0.9,
+                          gradientEndOpacity: 0.6,
+                          visible: showForeignBar,
+                          onToggle: () => setShowForeignBar(!showForeignBar)
+                        }
+                      ],
+                      areaConfig: isShareView ? {
+                        dataKey: 'value',
+                        color: chartColor,
+                        gradientId: `gradient-${immigrationShareView}`,
+                        gradientStartColor: chartColor,
+                        gradientEndColor: chartColor,
+                        gradientStartOpacity: 0.3,
+                        gradientEndOpacity: 0.05
+                      } : undefined,
+                      filtersConfig: {
+                        enabled: true,
+                        toggleButtons,
+                        viewModeButtons
+                      },
+                      yAxisConfig: {
+                        formatter: (value: number) => isShareView ? `${value.toFixed(1)}%` : value.toLocaleString(),
+                        width: isShareView ? 35 : undefined
+                      },
+                      tooltipConfig: {
+                        formatter: (value: number, name: string) => {
+                          if (isShareView) {
+                            return [`${value.toFixed(2)}%`, currentLabel]
+                          }
+                          return [value.toLocaleString(), name]
+                        }
+                      },
+                      contextText: immigrationAnalysisText,
+                      onShowTable: () => {
+                        const newValue = !showImmigrationTable
+                        setShowImmigrationTable(newValue)
+                      },
+                      onFullscreen: () => setFullscreenChart('immigration'),
+                      showTable: showImmigrationTable,
+                      chartColors,
+                      windowWidth,
+                      getXAxisInterval,
+                      isRevenueValue: false,
+                      tableData,
+                      tableColumns,
+                      renderTable: () => {
+                        if (!tableData || tableData.length === 0) return null
+                        return (
+                          <div className="chart-data-table-container">
+                            <table className="chart-data-table">
+                              <thead>
+                                <tr>
+                                  <th>Year</th>
+                                  {tableColumns.map(col => (
+                                    <th key={col.key}>{col.label}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {tableData.map((row, index) => (
+                                  <tr key={index}>
+                                    <td>{row.name}</td>
+                                    {isShareView ? (
+                                      <td>{row.value.toFixed(2)}%</td>
+                                    ) : (
+                                      <>
+                                        {showFinnishBar && <td>{row.Finnish?.toLocaleString() || '-'}</td>}
+                                        {showForeignBar && <td>{row.Foreign?.toLocaleString() || '-'}</td>}
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )
+                      }
+                    }
+                    
+                    return config
+                  }
                   
-                  // Prepare bar chart data with toggles
-                  const barChartData = immigrationComparisonData.map(row => ({
-                    name: row.name,
-                    ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
-                    ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
-                  }))
+                  const immigrationConfig = buildImmigrationChartConfig()
                   
-                  // Determine year range and chart title based on view
-                  let yearRange = ''
-                  let chartTitle = ''
-                  let chartData: any[] = []
-                  let currentLabel = ''
-                  let isShareView = immigrationShareView !== 'none'
-                  
-                  if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
-                    chartData = shareOfFinnishData
-                    yearRange = getYearRange(shareOfFinnishData)
-                    chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
-                    currentLabel = 'Share of Finnish'
-                  } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
-                    chartData = shareOfForeignData
-                    yearRange = getYearRange(shareOfForeignData)
-                    chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
-                    currentLabel = 'Share of Foreign'
-                  } else if (immigrationComparisonData.length > 0) {
-                    // Bar chart view
-                    chartData = barChartData
-                    yearRange = getYearRange(immigrationComparisonData)
-                    chartTitle = `Employees by immigration status in startups founded after 2010 (${yearRange})`
-                    currentLabel = 'Employees'
-                  } else {
+                  if (!immigrationConfig) {
                     return (
                       <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
                         <p>Immigration data not available.</p>
@@ -2774,237 +2759,7 @@ const ExploreData = () => {
                     )
                   }
                   
-                  // Determine chart color based on share view
-                  const getChartColor = () => {
-                    if (immigrationShareView === 'finnish-share') {
-                      return '#3498DB' // Blue for Finnish
-                    }
-                    return '#9B59B6' // Purple for Foreign
-                  }
-                  
-                  const chartColor = getChartColor()
-                  
-                  // Render chart based on view type
-                  return (
-                    <div className="chart-card chart-card-with-text" style={{ marginBottom: '2rem', gridColumn: '1 / -1' }}>
-                      <div className="chart-header">
-                        <h3 className="chart-card-title">{chartTitle}</h3>
-                      </div>
-                      <div className="chart-content-wrapper">
-                        <div className="chart-column">
-                          <div className="chart-wrapper chart-wrapper-grid" style={{ height: '400px' }}>
-                            <ResponsiveContainer width="100%" height={400}>
-                              {isShareView ? (
-                                // Area chart for share views
-                                <AreaChart data={chartData} margin={{ bottom: 50, top: 20, right: 20, left: 20 }}>
-                                  <defs>
-                                    <linearGradient id={`gradient-${immigrationShareView}`} x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor={chartColor} stopOpacity={0.3} />
-                                      <stop offset="100%" stopColor={chartColor} stopOpacity={0.05} />
-                                    </linearGradient>
-                                  </defs>
-                                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                  <XAxis 
-                                    dataKey="name" 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={80}
-                                    interval={getXAxisInterval()}
-                                  />
-                                  <YAxis 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    tickFormatter={(value) => `${value.toFixed(1)}%`}
-                                  />
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: chartColors.tooltipBg, 
-                                      border: 'none', 
-                                      borderRadius: '8px',
-                                      color: chartColors.tooltipText
-                                    }}
-                                    formatter={(value: number) => [`${value.toFixed(2)}%`, currentLabel]}
-                                  />
-                                  <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke={chartColor} 
-                                    fill={`url(#gradient-${immigrationShareView})`}
-                                    strokeWidth={2}
-                                  />
-                                </AreaChart>
-                              ) : (
-                                // Bar chart for raw numbers
-                                <BarChart data={chartData} margin={{ bottom: 50, top: 20, right: 20, left: 20 }}>
-                                  <defs>
-                                    <linearGradient id="gradient-finnish-bar-immigration" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#3498DB" stopOpacity={0.9} />
-                                      <stop offset="100%" stopColor="#3498DB" stopOpacity={0.6} />
-                                    </linearGradient>
-                                    <linearGradient id="gradient-foreign-bar-immigration" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#9B59B6" stopOpacity={0.9} />
-                                      <stop offset="100%" stopColor="#9B59B6" stopOpacity={0.6} />
-                                    </linearGradient>
-                                  </defs>
-                                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                  <XAxis 
-                                    dataKey="name" 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={80}
-                                    interval={getXAxisInterval()}
-                                  />
-                                  <YAxis 
-                                    stroke={chartColors.axis}
-                                    tick={{ fill: chartColors.tick, fontSize: 10 }}
-                                    tickFormatter={(value) => value.toLocaleString()}
-                                  />
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: chartColors.tooltipBg, 
-                                      border: 'none', 
-                                      borderRadius: '8px',
-                                      color: chartColors.tooltipText
-                                    }}
-                                    formatter={(value: number, name: string) => [value.toLocaleString(), name]}
-                                  />
-                                  {showFinnishBar && (
-                                    <Bar 
-                                      dataKey="Finnish" 
-                                      fill="url(#gradient-finnish-bar-immigration)"
-                                      radius={[4, 4, 0, 0]}
-                                    />
-                                  )}
-                                  {showForeignBar && (
-                                    <Bar 
-                                      dataKey="Foreign" 
-                                      fill="url(#gradient-foreign-bar-immigration)"
-                                      radius={[4, 4, 0, 0]}
-                                    />
-                                  )}
-                                </BarChart>
-                              )}
-                            </ResponsiveContainer>
-                          </div>
-                          <div className="chart-actions">
-                            <button
-                              className={`action-button ${showImmigrationTable ? 'active' : ''}`}
-                              onClick={() => setShowImmigrationTable(!showImmigrationTable)}
-                              title={showImmigrationTable ? 'Hide Data Table' : 'Show Data Table'}
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
-                              </svg>
-                            </button>
-                            <button
-                              className="action-button"
-                              onClick={() => setFullscreenChart('immigration')}
-                              title="Open in fullscreen"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                        <div className="chart-sidebar">
-                          <div className="chart-filters">
-                            <button
-                              className={`filter-button ${immigrationShareView === 'none' && showFinnishBar ? 'active' : ''}`}
-                              onClick={() => {
-                                setImmigrationShareView('none')
-                                setShowFinnishBar(!showFinnishBar)
-                              }}
-                            >
-                              <span className="filter-label">Finnish</span>
-                            </button>
-                            <button
-                              className={`filter-button ${immigrationShareView === 'none' && showForeignBar ? 'active' : ''}`}
-                              onClick={() => {
-                                setImmigrationShareView('none')
-                                setShowForeignBar(!showForeignBar)
-                              }}
-                            >
-                              <span className="filter-label">Foreign</span>
-                            </button>
-                            {shareOfFinnishCol && (
-                              <button
-                                className={`filter-button ${immigrationShareView === 'finnish-share' ? 'active' : ''}`}
-                                onClick={() => {
-                                  setImmigrationShareView(immigrationShareView === 'finnish-share' ? 'none' : 'finnish-share')
-                                  setShowFinnishBar(true)
-                                  setShowForeignBar(true)
-                                }}
-                              >
-                                <span className="filter-label">Share of Finnish</span>
-                              </button>
-                            )}
-                            {shareOfForeignCol && (
-                              <button
-                                className={`filter-button ${immigrationShareView === 'foreign-share' ? 'active' : ''}`}
-                                onClick={() => {
-                                  setImmigrationShareView(immigrationShareView === 'foreign-share' ? 'none' : 'foreign-share')
-                                  setShowFinnishBar(true)
-                                  setShowForeignBar(true)
-                                }}
-                              >
-                                <span className="filter-label">Share of Foreign</span>
-                              </button>
-                            )}
-                          </div>
-                          {immigrationAnalysisText && (
-                            <div className="chart-context-text">
-                              <p>{immigrationAnalysisText}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {showImmigrationTable && chartData.length > 0 && (
-                        <div className="chart-data-table-container">
-                          <table className="chart-data-table">
-                            <thead>
-                              <tr>
-                                <th>Year</th>
-                                {isShareView ? (
-                                  <th>{currentLabel}</th>
-                                ) : (
-                                  <>
-                                    {showFinnishBar && <th>Finnish</th>}
-                                    {showForeignBar && <th>Foreign</th>}
-                                  </>
-                                )}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {chartData.map((row, index) => (
-                                <tr key={index}>
-                                  <td>{row.name}</td>
-                                  {isShareView ? (
-                                    <td>{row.value.toFixed(2)}%</td>
-                                  ) : (
-                                    <>
-                                      {showFinnishBar && <td>{row.Finnish?.toLocaleString() || '-'}</td>}
-                                      {showForeignBar && <td>{row.Foreign?.toLocaleString() || '-'}</td>}
-                                    </>
-                                  )}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )
-                  
-                  return (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    <p>Immigration status data not available.</p>
-                  </div>
-                  )
+                  return <BarChartTemplate config={immigrationConfig} />
                 })()}
               </div>
             )}

@@ -57,6 +57,12 @@
   padding: 3rem 2rem;
 }
 
+@media (max-width: 640px) {
+  .explore-main {
+    padding: 1rem 0.75rem;
+  }
+}
+
 .loading-container,
 .error-container {
   display: flex;
@@ -84,6 +90,12 @@
   display: flex;
   flex-direction: column;
   gap: 3rem;
+}
+
+@media (max-width: 640px) {
+  .explore-content {
+    gap: 2rem;
+  }
 }
 
 .metric-selector {
@@ -206,6 +218,12 @@
   gap: 2rem;
 }
 
+@media (max-width: 640px) {
+  .charts-section {
+    gap: 1.5rem;
+  }
+}
+
 .charts-section-employees {
   margin-top: 5rem;
   padding-top: 3rem;
@@ -245,6 +263,14 @@
   transition: all 0.3s ease;
   position: relative;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .chart-card {
+    padding: 0.75rem;
+  }
 }
 
 .chart-card:hover {
@@ -266,6 +292,13 @@
   z-index: 1;
 }
 
+@media (max-width: 640px) {
+  .chart-content-wrapper {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
 .chart-column {
   display: flex;
   flex-direction: column;
@@ -279,11 +312,23 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 640px) {
+  .chart-sidebar {
+    order: 1;
+  }
+}
+
 .chart-context-text {
   padding: 1.5rem;
   background: var(--accent-hover);
   border-radius: 12px;
   border-left: 3px solid var(--border-color-strong);
+}
+
+@media (max-width: 640px) {
+  .chart-context-text {
+    padding: 1rem;
+  }
 }
 
 .chart-context-text p {
@@ -313,10 +358,27 @@
   z-index: 1;
 }
 
+@media (max-width: 640px) {
+  .chart-wrapper {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .chart-wrapper {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Only change font size - don't interfere with Recharts layout calculations */
+  .chart-wrapper .recharts-cartesian-axis-y .recharts-cartesian-axis-tick-value {
+    font-size: 9px !important;
+  }
+}
+
 /* Grid charts (side-by-side) - smaller bottom margin */
 .chart-wrapper-grid {
   padding-bottom: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
   min-height: 300px; /* Minimum height, can be larger for gender charts */
   overflow: hidden;
 }
@@ -365,6 +427,12 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 640px) {
+  .chart-sidebar {
+    order: 1;
+  }
+}
+
 .chart-filters {
   display: flex;
   flex-direction: row;
@@ -389,6 +457,14 @@
   font-family: 'Hanken Grotesk', system-ui, sans-serif;
 }
 
+@media (max-width: 640px) {
+  .filter-button {
+    padding: 0.5rem 0.75rem;
+    min-width: 0;
+    font-size: 0.8rem;
+  }
+}
+
 .filter-button:hover {
   background: var(--accent-hover);
   border-color: var(--accent-color);
@@ -407,6 +483,12 @@
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+}
+
+@media (max-width: 640px) {
+  .filter-label {
+    font-size: 0.8rem;
+  }
 }
 
 .filter-button.active .filter-label {
@@ -434,13 +516,20 @@
 
 /* Chart Actions Styles */
 .chart-actions {
-  margin-top: 0.5rem;
+  margin-top: 0;
   padding-top: 0;
   border-top: none;
   display: flex;
   gap: 0.5rem;
   justify-content: flex-start;
   align-items: center;
+}
+
+@media (max-width: 640px) {
+  .chart-actions {
+    margin-top: 0;
+    gap: 0.4rem;
+  }
 }
 
 .action-button {
@@ -478,6 +567,10 @@
   height: 16px;
 }
 
+.chart-table-wrapper {
+  order: 0;
+}
+
 .chart-data-table-container {
   margin-top: 1.5rem;
   background: var(--bg-table);
@@ -487,6 +580,22 @@
   overflow-x: auto;
   position: relative;
   z-index: 2;
+  scroll-margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .chart-content-wrapper {
+    order: 0;
+  }
+
+  .chart-table-wrapper {
+    order: 1;
+  }
+
+  .chart-data-table-container {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
 }
 
 .chart-data-table {
@@ -539,7 +648,18 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
   animation: fadeIn 0.2s ease;
+}
+
+@media (max-width: 640px) {
+  .fullscreen-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
 }
 
 @keyframes fadeIn {
@@ -565,12 +685,32 @@
   box-shadow: 0 20px 60px var(--shadow-color);
 }
 
+@media (max-width: 640px) {
+  .fullscreen-modal-content {
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+}
+
 .fullscreen-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
+  padding-top: calc(1.5rem + env(safe-area-inset-top, 0));
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .fullscreen-modal-header {
+    padding: 1rem;
+    padding-top: calc(1rem + env(safe-area-inset-top, 0));
+  }
 }
 
 .fullscreen-modal-header h2 {
@@ -601,9 +741,27 @@
 .fullscreen-chart-wrapper {
   flex: 1;
   padding: 2rem;
-  overflow: hidden;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
   min-height: 0;
 }
+
+@media (max-width: 640px) {
+  .fullscreen-chart-wrapper {
+    padding: 0.75rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+  }
+}
+
+.fullscreen-chart-wrapper > div {
+  width: 100%;
+  height: 600px;
+  position: relative;
+}
+
+/* Let Recharts handle its own sizing */
 
 /* Fullscreen Button Styles */
 .chart-title-row {
@@ -648,7 +806,7 @@
   }
 
   .explore-main {
-    padding: 2rem 1rem;
+    padding: 1rem 0.75rem;
   }
 
   .charts-grid {
@@ -695,19 +853,19 @@
   .chart-actions {
     flex-wrap: wrap;
     gap: 0.4rem;
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
   }
 
   .action-button {
-    min-width: 28px;
-    min-height: 28px;
-    padding: 0.4rem;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0.3rem;
   }
 
   .action-button svg {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
   }
 
   .chart-data-table-container {

@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTheme } from '../contexts/ThemeContext'
 import './Navigation.css'
@@ -5,6 +6,9 @@ import './Navigation.css'
 const Navigation = () => {
   const location = useLocation()
   const { theme, toggleTheme } = useTheme()
+  const [isScrolledDown, setIsScrolledDown] = useState(false)
+  const lastScrollY = useRef(0)
+  const ticking = useRef(false)
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true
@@ -12,8 +16,65 @@ const Navigation = () => {
     return false
   }
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return
+      
+      ticking.current = true
+      requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY
+        const isMobile = window.innerWidth <= 640
+
+        if (!isMobile) {
+          // Always show on desktop
+          setIsScrolledDown(false)
+          lastScrollY.current = currentScrollY
+          ticking.current = false
+          return
+        }
+
+        // On mobile: show when at top or scrolling up, hide when scrolling down
+        const scrollDifference = currentScrollY - lastScrollY.current
+        
+        // Priority 1: Always show if at or near top (within 100px)
+        if (currentScrollY <= 100) {
+          setIsScrolledDown(false)
+        }
+        // Priority 2: Always show if scrolling up (any amount)
+        else if (scrollDifference < 0) {
+          setIsScrolledDown(false)
+        }
+        // Priority 3: Hide only if scrolling down significantly (more than 10px) and past 150px
+        else if (scrollDifference > 10 && currentScrollY > 150) {
+          setIsScrolledDown(true)
+        }
+        // Priority 4: If we're hidden and user stops scrolling, check if we should show
+        else if (isScrolledDown && Math.abs(scrollDifference) < 2) {
+          // If stopped scrolling and near top, show nav
+          if (currentScrollY < 200) {
+            setIsScrolledDown(false)
+          }
+        }
+
+        lastScrollY.current = currentScrollY
+        ticking.current = false
+      })
+    }
+
+    // Initial check
+    handleScroll()
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [isScrolledDown])
+
   return (
-    <nav className="main-navigation">
+    <nav className={`main-navigation ${isScrolledDown ? 'scrolled-down' : ''}`}>
       <div className="nav-container">
         <Link to="/" className="nav-logo">
           <img 
@@ -47,7 +108,7 @@ const Navigation = () => {
             rel="noopener noreferrer"
             className="nav-link nav-link-external"
           >
-            Back to Startup Community
+            FSC Homepage
             <span className="external-icon">↗</span>
           </a>
           <button 
