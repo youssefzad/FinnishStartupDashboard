@@ -694,36 +694,6 @@ const ExploreData = () => {
     }
   }
 
-  // Helper function to render data table
-  const renderDataTable = (chartData: any[], label: string, isRevenue: boolean = false) => {
-    if (chartData.length === 0) return null
-
-    return (
-      <div className="chart-data-table-container">
-        <table className="chart-data-table">
-          <thead>
-            <tr>
-              <th>Year</th>
-              <th>{label}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {chartData.map((row, index) => (
-              <tr key={index}>
-                <td>{row.name}</td>
-                <td>
-                  {isRevenue 
-                    ? `€${(row.originalValue / 1000000000).toFixed(2)}B`
-                    : row.originalValue.toLocaleString()
-                  }
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
 
   // Build revenue chart config for GraphTemplate
   const buildRevenueChartConfig = (): GraphTemplateConfig | null => {
