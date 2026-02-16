@@ -1,0 +1,125 @@
+.page-hero {
+  padding: 5rem 2rem 4rem;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+/* FSC Hero Dimensions - uses centralized variables from fsc-theme.css */
+body.use-fsc-header-hero .page-hero {
+  min-height: var(--fsc-hero-min-height-desktop);
+  padding-top: var(--fsc-hero-padding-top-desktop);
+  padding-bottom: var(--fsc-hero-padding-bottom-desktop);
+}
+
+/* Animated background gradient */
+.page-hero-bg-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(165, 128, 242, 0.1) 0%,
+    rgba(124, 58, 237, 0.05) 25%,
+    rgba(139, 92, 246, 0.08) 50%,
+    rgba(124, 58, 237, 0.05) 75%,
+    rgba(165, 128, 242, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
+  pointer-events: none;
+}
+
+/* Subtle dark overlay for text readability (FSC style) */
+body.use-fsc-header-hero .page-hero-bg-animation::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.15);
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Light theme - more subtle */
+[data-theme="light"] .page-hero-bg-animation {
+  background: linear-gradient(
+    135deg,
+    rgba(165, 128, 242, 0.05) 0%,
+    rgba(124, 58, 237, 0.02) 25%,
+    rgba(139, 92, 246, 0.04) 50%,
+    rgba(124, 58, 237, 0.02) 75%,
+    rgba(165, 128, 242, 0.05) 100%
+  );
+}
+
+.page-hero-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.page-hero-title {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
+}
+
+.page-hero-subtitle {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 900px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .page-hero {
+    padding: 3rem 1rem 2rem;
+  }
+
+  .page-hero-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .page-hero-subtitle {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  /* FSC Hero Dimensions - Mobile - uses centralized variables from fsc-theme.css */
+  body.use-fsc-header-hero .page-hero {
+    min-height: var(--fsc-hero-min-height-mobile);
+    padding-top: var(--fsc-hero-padding-top-mobile);
+    padding-bottom: var(--fsc-hero-padding-bottom-mobile);
+  }
+}
+

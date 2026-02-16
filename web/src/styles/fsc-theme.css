@@ -1,0 +1,22 @@
+/* FSC Theme Variables - Single source of truth for header/hero dimensions */
+
+:root {
+  /* Header dimensions - calibrated to match startupyhteiso.com */
+  --fsc-header-height-desktop: 110px;
+  --fsc-header-height-mobile: 85px;
+  
+  /* Logo dimensions */
+  --fsc-logo-height-desktop: 52px;
+  --fsc-logo-height-mobile: 42px;
+  
+  /* Hero section dimensions - calibrated to match startupyhteiso.com */
+  --fsc-hero-min-height-desktop: 600px;
+  --fsc-hero-min-height-mobile: 450px;
+  
+  /* Hero padding - more breathing room to match FSC */
+  --fsc-hero-padding-top-desktop: 140px;
+  --fsc-hero-padding-bottom-desktop: 100px;
+  --fsc-hero-padding-top-mobile: 100px;
+  --fsc-hero-padding-bottom-mobile: 70px;
+}
+

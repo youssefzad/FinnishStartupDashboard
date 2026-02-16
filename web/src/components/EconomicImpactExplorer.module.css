@@ -1,0 +1,110 @@
+.economicImpactExplorer {
+  width: 100%;
+}
+
+.helperText {
+  color: var(--text-secondary, #666);
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Desktop: Tighter spacing between title, helper text, tabs, and chart */
+@media (min-width: 769px) {
+  .helperText {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.helperTextDesktop {
+  display: block;
+}
+
+.helperTextMobile {
+  display: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
+  padding-bottom: 0.5rem;
+}
+
+/* Desktop: Tighter spacing between tabs and chart */
+@media (min-width: 769px) {
+  .tabs {
+    margin-bottom: 1rem;
+  }
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -0.5rem;
+  position: relative;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-primary, #333);
+}
+
+.tabActive {
+  color: var(--primary-color, #A580F2);
+  border-bottom-color: var(--primary-color, #A580F2);
+  border-bottom-width: 3px;
+  font-weight: 700;
+  background-color: rgba(165, 128, 242, 0.05);
+}
+
+.chartContainer {
+  width: 100%;
+}
+
+/* Mobile: Use grid layout for 2x2 tabs (≤768px) */
+@media (max-width: 768px) {
+  .helperText {
+    margin-bottom: 0.5rem;
+  }
+
+  .helperTextDesktop {
+    display: none;
+  }
+
+  .helperTextMobile {
+    display: block;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    margin-top: 0.25rem;
+    border-bottom: 2px solid var(--border-color, #e0e0e0);
+    padding-bottom: 0.5rem;
+    overflow-x: visible;
+  }
+  
+  .tab {
+    width: 100%;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    text-align: center;
+    margin-bottom: 0;
+  }
+}
+

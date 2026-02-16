@@ -1,5 +1,5 @@
 import React from 'react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 // Type definitions for graph configuration
 export interface FilterOption {
@@ -18,6 +18,7 @@ export interface FiltersConfig {
 export interface YAxisConfig {
   formatter: (value: number) => string
   width?: number // Optional width constraint for mobile
+  domain?: [number, number] // Optional fixed domain [min, max] for Y-axis
 }
 
 export interface TooltipConfig {
@@ -34,13 +35,28 @@ export interface ChartStyleConfig {
   strokeWidth?: number
 }
 
+export interface SeriesConfig {
+  key: string // Data key for this series
+  label: string // Display label for legend/tooltip
+  color?: string // Optional: custom color (defaults to styleConfig.strokeColor)
+  style?: 'solid' | 'dashed' // Optional: line style (defaults to 'solid')
+  gradientId?: string // Optional: custom gradient ID
+  gradientStartColor?: string // Optional: custom gradient start color
+  gradientEndColor?: string // Optional: custom gradient end color
+  gradientStartOpacity?: number // Optional: custom gradient start opacity
+  gradientEndOpacity?: number // Optional: custom gradient end opacity
+}
+
 export interface GraphTemplateConfig {
-  // Data
-  data: Array<{ name: string; value: number; originalValue: number }>
+  // Data - supports both single series (backward compatible) and multi-series
+  data: Array<{ name: string; value?: number; originalValue?: number; [key: string]: any }>
   
   // Title and labels
   title: string
-  dataLabel: string // Label for tooltip/legend
+  dataLabel: string // Label for tooltip/legend (used for single series or as fallback)
+  
+  // Multi-series support (optional - if provided, renders multiple series)
+  series?: SeriesConfig[]
   
   // Filters (optional)
   filtersConfig?: FiltersConfig
@@ -51,7 +67,7 @@ export interface GraphTemplateConfig {
   // Tooltip configuration
   tooltipConfig: TooltipConfig
   
-  // Styling
+  // Styling (used for single series or as defaults for multi-series)
   styleConfig: ChartStyleConfig
   
   // Context text (optional)
@@ -93,6 +109,7 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
     data,
     title,
     dataLabel,
+    series,
     filtersConfig,
     yAxisConfig,
     tooltipConfig,
@@ -107,6 +124,12 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
     isRevenueValue = false,
     renderTable
   } = config
+
+  // Feature flag for multi-series support (can be disabled for rollback)
+  const ENABLE_MULTI_SERIES_GRAPH = true
+  
+  // Determine if we're using multi-series mode
+  const isMultiSeries = ENABLE_MULTI_SERIES_GRAPH && series && series.length > 0
 
   // Get margins based on screen size
   const getMargins = () => {
@@ -133,6 +156,41 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
     
     if (data.length === 0) return null
 
+    // Multi-series table
+    if (isMultiSeries && series) {
+      return (
+        <div className="chart-data-table-container">
+          <table className="chart-data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                {series.map(s => (
+                  <th key={s.key}>{s.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, index) => (
+                <tr key={index}>
+                  <td>{row.name}</td>
+                  {series.map(s => {
+                    const value = row[s.key]
+                    if (value === null || value === undefined) return <td key={s.key}>-</td>
+                    return (
+                      <td key={s.key}>
+                        {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+
+    // Single-series table (backward compatible)
     return (
       <div className="chart-data-table-container">
         <table className="chart-data-table">
@@ -148,8 +206,8 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                 <td>{row.name}</td>
                 <td>
                   {isRevenueValue 
-                    ? `€${(row.originalValue / 1000000000).toFixed(2)}B`
-                    : row.originalValue.toLocaleString()
+                    ? `€${((row.originalValue || row.value || 0) / 1000000000).toFixed(2)}B`
+                    : (row.originalValue || row.value || 0).toLocaleString()
                   }
                 </td>
               </tr>
@@ -171,10 +229,28 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={data} margin={getMargins()}>
                 <defs>
-                  <linearGradient id={styleConfig.gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={styleConfig.gradientStartColor} stopOpacity={styleConfig.gradientStartOpacity} />
-                    <stop offset="100%" stopColor={styleConfig.gradientEndColor} stopOpacity={styleConfig.gradientEndOpacity} />
-                  </linearGradient>
+                  {isMultiSeries && series ? (
+                    // Multi-series gradients
+                    series.map((s, index) => {
+                      const gradientId = s.gradientId || `${styleConfig.gradientId}-${index}`
+                      const startColor = s.gradientStartColor || s.color || styleConfig.gradientStartColor
+                      const endColor = s.gradientEndColor || s.color || styleConfig.gradientEndColor
+                      const startOpacity = s.gradientStartOpacity ?? styleConfig.gradientStartOpacity
+                      const endOpacity = s.gradientEndOpacity ?? styleConfig.gradientEndOpacity
+                      return (
+                        <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={startColor} stopOpacity={startOpacity} />
+                          <stop offset="100%" stopColor={endColor} stopOpacity={endOpacity} />
+                        </linearGradient>
+                      )
+                    })
+                  ) : (
+                    // Single-series gradient (backward compatible)
+                    <linearGradient id={styleConfig.gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={styleConfig.gradientStartColor} stopOpacity={styleConfig.gradientStartOpacity} />
+                      <stop offset="100%" stopColor={styleConfig.gradientEndColor} stopOpacity={styleConfig.gradientEndOpacity} />
+                    </linearGradient>
+                  )}
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis 
@@ -191,6 +267,7 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                   tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 9 : 10 }}
                   width={windowWidth <= 640 ? (yAxisConfig.width || 35) : undefined}
                   tickFormatter={yAxisConfig.formatter}
+                  domain={yAxisConfig.domain}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -199,17 +276,51 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                     borderRadius: '8px',
                     color: chartColors.tooltipText
                   }}
-                  formatter={(value: number, _name: string, props: any) => {
-                    return tooltipConfig.formatter(value, props.payload.originalValue, dataLabel)
+                  formatter={(value: number, name: string, props: any) => {
+                    if (isMultiSeries && series) {
+                      // Multi-series tooltip
+                      const seriesConfig = series.find(s => s.key === name)
+                      const label = seriesConfig?.label || name
+                      if (value === null || value === undefined) return ['N/A', label]
+                      return [value.toFixed(1), label]
+                    } else {
+                      // Single-series tooltip (backward compatible)
+                      return tooltipConfig.formatter(value, props.payload?.originalValue || value, dataLabel)
+                    }
                   }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={styleConfig.strokeColor} 
-                  fill={`url(#${styleConfig.gradientId})`}
-                  strokeWidth={styleConfig.strokeWidth || 2}
-                />
+                {isMultiSeries && series ? (
+                  // Multi-series rendering
+                  <>
+                    {series.map((s, index) => {
+                      const gradientId = s.gradientId || `${styleConfig.gradientId}-${index}`
+                      const strokeColor = s.color || styleConfig.strokeColor
+                      const strokeDasharray = s.style === 'dashed' ? '5 5' : undefined
+                      return (
+                        <Area
+                          key={s.key}
+                          type="monotone"
+                          dataKey={s.key}
+                          stroke={strokeColor}
+                          fill={`url(#${gradientId})`}
+                          strokeWidth={styleConfig.strokeWidth || 2}
+                          strokeDasharray={strokeDasharray}
+                          name={s.label}
+                        />
+                      )
+                    })}
+                    <Legend />
+                  </>
+                ) : (
+                  // Single-series rendering (backward compatible)
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke={styleConfig.strokeColor} 
+                    fill={`url(#${styleConfig.gradientId})`}
+                    strokeWidth={styleConfig.strokeWidth || 2}
+                  />
+                )}
               </AreaChart>
             </ResponsiveContainer>
           </div>

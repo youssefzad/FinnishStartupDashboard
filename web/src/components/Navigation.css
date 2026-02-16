@@ -1,3 +1,13 @@
+/* CSS Variables for header sizing */
+:root {
+  --header-height-desktop: 90px;
+  --header-height-mobile: 75px;
+  --logo-height-desktop: 44px;
+  --logo-height-mobile: 36px;
+}
+
+/* FSC dimensions are imported from fsc-theme.css */
+
 .main-navigation {
   position: fixed;
   top: 0;
@@ -8,7 +18,24 @@
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(165, 128, 242, 0.1);
   padding: 0;
-  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+  min-height: var(--header-height-desktop);
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, min-height 0.3s ease;
+}
+
+/* FSC Header Dimensions - uses centralized variables from fsc-theme.css */
+body.use-fsc-header-hero .main-navigation {
+  min-height: var(--fsc-header-height-desktop);
+}
+
+body.use-fsc-header-hero .nav-container {
+  min-height: var(--fsc-header-height-desktop);
+  padding: 24px clamp(0.5rem, 1.5vw, 2rem);
+}
+
+body.use-fsc-header-hero .nav-logo-img {
+  height: var(--fsc-logo-height-desktop);
 }
 
 @media (max-width: 640px) {
@@ -49,13 +76,17 @@
 .nav-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0.75rem clamp(0.5rem, 1.5vw, 2rem);
+  padding: 1.25rem clamp(0.5rem, 1.5vw, 2rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   position: relative;
+  width: 100%;
+  min-height: var(--header-height-desktop);
 }
+
+/* Brand header styling now uses standard CSS variables - no special overrides needed */
 
 .nav-logo {
   display: flex;
@@ -69,8 +100,17 @@
 }
 
 .nav-logo-img {
-  height: 32px;
+  height: var(--logo-height-desktop);
   width: auto;
+  transition: height 0.3s ease;
+}
+
+/* Mobile actions container (theme toggle + hamburger) */
+.nav-actions-mobile {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .mobile-menu-toggle {
@@ -87,11 +127,17 @@
   align-items: center;
   justify-content: center;
   z-index: 1001;
+  flex-shrink: 0;
 }
 
 .mobile-menu-toggle:hover {
   background: var(--accent-hover);
   border-color: var(--accent-color);
+}
+
+.mobile-menu-toggle:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
 }
 
 .nav-links {
@@ -219,58 +265,178 @@
   transform: scale(1.05);
 }
 
+/* Mobile menu backdrop */
+.mobile-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
+}
+
 /* Responsive - Mobile adjustments */
-@media (max-width: 640px) {
-  .nav-container {
-    padding: 0.5rem 0.75rem;
-    gap: 0.25rem;
+@media (max-width: 768px) {
+  .nav-actions-mobile {
+    display: flex;
   }
 
-  .nav-links {
-    gap: 0.4rem;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  .mobile-menu-toggle {
+    display: flex;
   }
 
-  .nav-links::-webkit-scrollbar {
+  .theme-toggle-desktop {
     display: none;
   }
 
-  .nav-link {
-    padding: 0.4rem 0.25rem;
-    font-size: 0.7rem;
-    letter-spacing: 0.03em;
-    min-height: 40px;
+  .theme-toggle-mobile {
+    display: flex;
+    background: rgba(165, 128, 242, 0.1);
+    border: 1px solid rgba(165, 128, 242, 0.3);
+    color: #A580F2;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
   }
 
+  .theme-toggle-mobile:hover {
+    background: rgba(165, 128, 242, 0.2);
+    border-color: rgba(165, 128, 242, 0.5);
+  }
+
+  .theme-toggle-mobile:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+  }
+}
+
+@media (min-width: 769px) {
+  .nav-actions-mobile {
+    display: none;
+  }
+
+  .theme-toggle-mobile {
+    display: none;
+  }
+
+  .theme-toggle-desktop {
+    display: flex;
+  }
+}
+
+/* Mobile menu styles */
+@media (max-width: 768px) {
+  .nav-links {
+    position: fixed;
+    top: var(--header-height-mobile, 75px);
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(165, 128, 242, 0.1);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+    gap: 0.5rem;
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 1000;
+    max-height: calc(100vh - var(--header-height-mobile, 75px));
+    overflow-y: auto;
+  }
+
+  [data-theme="light"] .nav-links {
+    background: rgba(245, 245, 245, 0.95);
+    border-bottom: 1px solid rgba(165, 128, 242, 0.2);
+  }
+
+  .nav-links.mobile-menu-open {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mobile-menu-backdrop {
+    display: block;
+  }
+
+  .nav-link {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    min-height: 44px;
+    border-radius: 6px;
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .nav-link:hover {
+    background: rgba(165, 128, 242, 0.1);
+  }
+
+  .nav-link.active {
+    background: rgba(165, 128, 242, 0.15);
+  }
+
+  .nav-link.active::after {
+    display: none;
+  }
+
   .nav-link-external {
-    font-size: 0.65rem;
-    gap: 0.2rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
   }
 
   .external-icon {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-navigation {
+    min-height: var(--header-height-mobile);
   }
 
-  .theme-toggle-button {
-    padding: 0.35rem;
-    min-width: 36px;
-    min-height: 36px;
-    margin-left: 0.25rem;
-  }
-
-  .theme-toggle-button svg {
-    width: 18px;
-    height: 18px;
+  .nav-container {
+    padding: 1rem clamp(0.75rem, 2vw, 1.5rem);
+    gap: 0.5rem;
+    min-height: var(--header-height-mobile);
   }
 
   .nav-logo-img {
-    height: clamp(20px, 4vw, 28px);
-    max-width: 100px;
+    height: var(--logo-height-mobile);
+  }
+
+  /* FSC Header Dimensions - Mobile - uses centralized variables from fsc-theme.css */
+  body.use-fsc-header-hero .main-navigation {
+    min-height: var(--fsc-header-height-mobile);
+  }
+
+  body.use-fsc-header-hero .nav-container {
+    padding: 20px clamp(0.75rem, 2vw, 1.5rem);
+    min-height: var(--fsc-header-height-mobile);
+  }
+
+  body.use-fsc-header-hero .nav-logo-img {
+    height: var(--fsc-logo-height-mobile);
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-container {
+    padding: 0.875rem 0.75rem;
+    gap: 0.25rem;
   }
 }
 
@@ -290,8 +456,8 @@
   }
 
   .nav-logo-img {
-    height: 20px;
-    max-width: 90px;
+    height: var(--logo-height-mobile);
+    max-width: 100px;
   }
 
   .theme-toggle-button {

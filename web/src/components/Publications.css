@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: var(--bg-primary);
   color: var(--text-primary);
-  padding-top: 80px; /* Account for fixed navigation */
+  padding-top: var(--header-height-desktop, 90px); /* Account for fixed navigation */
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

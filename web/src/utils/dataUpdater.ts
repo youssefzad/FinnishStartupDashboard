@@ -113,10 +113,61 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
       console.log('⚠️ Employees gender GID not configured, skipping...')
     }
 
+    // Load barometer data if configured (different sheet)
+    let barometerData: any[] = []
+    const barometerSheetId = import.meta.env.VITE_BAROMETER_SHEET_ID || ''
+    const barometerGid = import.meta.env.VITE_BAROMETER_GID || '0'
+    
+    if (barometerSheetId) {
+      try {
+        console.log('📥 Loading barometer data...')
+        const barometerUrl = `https://docs.google.com/spreadsheets/d/${barometerSheetId}/export?format=csv&gid=${barometerGid}`
+        const barometerResponse = await fetch(barometerUrl)
+        
+        if (barometerResponse.ok) {
+          const barometerCsvText = await barometerResponse.text()
+          if (barometerCsvText && !barometerCsvText.trim().startsWith('<!DOCTYPE')) {
+            const barometerCsvData = parseCSV(barometerCsvText)
+            if (barometerCsvData.length > 0) {
+              const headers = (barometerCsvData[0] || []).map((h: string) => String(h || '').trim())
+              for (let i = 1; i < barometerCsvData.length; i++) {
+                const row = barometerCsvData[i]
+                if (row && row.length > 0) {
+                  const rowData: any = {}
+                  headers.forEach((header, index) => {
+                    if (row[index] !== undefined && row[index] !== null && row[index] !== '') {
+                      const value = row[index]
+                      if (typeof value === 'number') {
+                        rowData[header] = value
+                      } else {
+                        const numValue = parseFloat(String(value).replace(/[,\s€$]/g, ''))
+                        rowData[header] = isNaN(numValue) ? String(value) : numValue
+                      }
+                    }
+                  })
+                  if (Object.keys(rowData).length > 0) {
+                    barometerData.push(rowData)
+                  }
+                }
+              }
+            }
+          }
+          console.log(`✅ Barometer data loaded: ${barometerData.length} rows`)
+        } else {
+          console.log('⚠️ Barometer sheet not accessible, skipping...')
+        }
+      } catch (error) {
+        console.log('⚠️ Error loading barometer data, skipping:', error)
+      }
+    } else {
+      console.log('⚠️ Barometer sheet ID not configured, skipping...')
+    }
+
     // Combine data
     const allData = {
       main: mainData,
       employeesGender: employeesGenderData,
+      barometer: barometerData,
       lastUpdated: new Date().toISOString(),
       source: 'google-sheets'
     }
@@ -151,11 +202,25 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
       URL.revokeObjectURL(genderUrl)
     }
     
+    // Download barometer data file if available
+    if (barometerData.length > 0) {
+      const barometerDataStr = JSON.stringify(barometerData, null, 2)
+      const barometerDataBlob = new Blob([barometerDataStr], { type: 'application/json' })
+      const barometerUrl = URL.createObjectURL(barometerDataBlob)
+      const barometerLink = document.createElement('a')
+      barometerLink.href = barometerUrl
+      barometerLink.download = 'barometer-data.json'
+      document.body.appendChild(barometerLink)
+      barometerLink.click()
+      document.body.removeChild(barometerLink)
+      URL.revokeObjectURL(barometerUrl)
+    }
+    
     console.log('📥 JSON files downloaded')
 
     return {
       success: true,
-      message: `Successfully updated! Main: ${mainData.length} rows, Gender: ${employeesGenderData.length} rows`,
+      message: `Successfully updated! Main: ${mainData.length} rows, Gender: ${employeesGenderData.length} rows, Barometer: ${barometerData.length} rows`,
       data: allData
     }
   } catch (error: any) {
@@ -168,7 +233,7 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
 }
 
 // Load data from localStorage (fast)
-export function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], lastUpdated?: string } | null {
+export function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], barometer: any[], lastUpdated?: string } | null {
   try {
     const stored = localStorage.getItem('startupData')
     if (!stored) return null
@@ -177,6 +242,7 @@ export function loadDataFromLocalStorage(): { main: any[], employeesGender: any[
     return {
       main: data.main || [],
       employeesGender: data.employeesGender || [],
+      barometer: data.barometer || [],
       lastUpdated: data.lastUpdated
     }
   } catch (error) {

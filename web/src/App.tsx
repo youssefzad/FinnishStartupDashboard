@@ -1,23 +1,59 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Navigation from './components/Navigation'
 import LandingPage from './components/LandingPage'
 import ExploreData from './components/ExploreData'
 import Publications from './components/Publications'
 import DataUpdater from './components/DataUpdater'
+import FSCDebugBadge from './components/FSCDebugBadge'
 import './App.css'
+import './styles/fsc-theme.css'
+
+// Feature flag: Set to true to enable FSC header/hero dimensions
+const USE_FSC_HEADER_HERO = true
+
+function AppContent() {
+  const location = useLocation()
+  
+  // Apply FSC header/hero body class globally when flag is enabled
+  useEffect(() => {
+    if (USE_FSC_HEADER_HERO) {
+      document.body.classList.add('use-fsc-header-hero')
+    } else {
+      document.body.classList.remove('use-fsc-header-hero')
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (!USE_FSC_HEADER_HERO) {
+        document.body.classList.remove('use-fsc-header-hero')
+      }
+    }
+  }, [])
+
+  // Check for debug mode
+  const showDebug = new URLSearchParams(location.search).get('fscDebug') === '1'
+
+  return (
+    <>
+      <Navigation />
+      {showDebug && <FSCDebugBadge />}
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/explore" element={<ExploreData />} />
+        <Route path="/publications" element={<Publications />} />
+        <Route path="/update-data" element={<DataUpdater />} />
+      </Routes>
+    </>
+  )
+}
 
 function App() {
   return (
     <ThemeProvider>
       <Router>
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/explore" element={<ExploreData />} />
-          <Route path="/publications" element={<Publications />} />
-          <Route path="/update-data" element={<DataUpdater />} />
-        </Routes>
+        <AppContent />
       </Router>
     </ThemeProvider>
   )

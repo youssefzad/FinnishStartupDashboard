@@ -1,12 +1,28 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts'
 import { useTheme } from '../contexts/ThemeContext'
 import GraphTemplate from './GraphTemplate'
 import type { GraphTemplateConfig } from './GraphTemplate'
 import BarChartTemplate from './BarChartTemplate'
 import type { BarChartTemplateConfig } from './BarChartTemplate'
+import EconomicImpactExplorer from './EconomicImpactExplorer'
+import WorkforceExplorer from './WorkforceExplorer'
+import BarometerExplorer from './BarometerExplorer'
+import PageHero from './PageHero'
 import './ExploreData.css'
+
+// Feature flag: Set to true to enable Economic Impact Explorer
+const USE_ECON_IMPACT_EXPLORER = true
+
+// Feature flag: Set to true to enable Workforce Explorer
+const USE_WORKFORCE_EXPLORER = true
+
+// Feature flag: Set to true to enable new hero/header layout
+const USE_NEW_HERO_LAYOUT = true
+
+// Feature flag: Set to true to enable Startup Barometer section
+const USE_BAROMETER_SECTION = true
 
 // Chart contextual text configuration
 const getChartContext = (chartName: string): string | null => {
@@ -49,6 +65,7 @@ const ExploreData = () => {
   const [allData, setAllData] = useState<any[]>([])
   const [employeesGenderData, setEmployeesGenderData] = useState<any[]>([])
   const [rdiData, setRdiData] = useState<any[]>([])
+  const [barometerData, setBarometerData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [revenueFilter, setRevenueFilter] = useState<'all' | 'early-stage' | 'later-stage'>('all')
   const [employeesFilter, setEmployeesFilter] = useState<'all' | 'finland'>('all')
@@ -65,9 +82,11 @@ const ExploreData = () => {
   const [showForeignBar, setShowForeignBar] = useState<boolean>(true)
   const [immigrationShareView, setImmigrationShareView] = useState<'none' | 'finnish-share' | 'foreign-share'>('none')
   const [showRdiTable, setShowRdiTable] = useState<Record<string, boolean>>({})
-  const [fullscreenChart, setFullscreenChart] = useState<'revenue' | 'employees' | 'firms' | 'rdi' | 'gender' | 'immigration' | null>(null)
+  const [showBarometerTable, setShowBarometerTable] = useState(false)
+  const [barometerSelectedTab, setBarometerSelectedTab] = useState<'financial' | 'employees' | 'economy'>('financial')
+  const [workforceSelectedTab, setWorkforceSelectedTab] = useState<'gender' | 'immigration'>('gender')
+  const [fullscreenChart, setFullscreenChart] = useState<'revenue' | 'employees' | 'firms' | 'rdi' | 'gender' | 'immigration' | 'barometer' | null>(null)
   const [fullscreenRdiMetric, setFullscreenRdiMetric] = useState<string | null>(null)
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200)
 
   useEffect(() => {
@@ -89,37 +108,11 @@ const ExploreData = () => {
   async function loadAllData() {
     try {
       const { loadAllTabsData } = await import('../utils/dataLoader')
-      const { main, employeesGender, rdi } = await loadAllTabsData()
+      const { main, employeesGender, rdi, barometer } = await loadAllTabsData()
       setAllData(main)
       setEmployeesGenderData(employeesGender)
       setRdiData(rdi)
-      
-      // Get last modified date from the main data file
-      try {
-        const response = await fetch('/data/main-data.json', { method: 'HEAD' })
-        const lastModified = response.headers.get('last-modified')
-        if (lastModified) {
-          setLastUpdated(new Date(lastModified).toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }))
-        } else {
-          // Fallback to current date if last-modified header is not available
-          setLastUpdated(new Date().toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }))
-        }
-      } catch (error) {
-        // If we can't get the date, use current date
-        setLastUpdated(new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }))
-      }
+      setBarometerData(barometer || [])
       
       if (main.length > 0) {
         const headers = Object.keys(main[0])
@@ -652,6 +645,128 @@ const ExploreData = () => {
 
   const shareOfMalesData = getShareOfMalesData()
 
+  // Explicit column mapping for Gender chart
+  // This prevents "column not found" issues by using explicit mappings
+  const getGenderColumnMapping = () => {
+    if (employeesGenderData.length === 0) return null
+    
+    const headers = Object.keys(employeesGenderData[0])
+    
+    // Find year column (exact match preferred, then fuzzy)
+    const yearKey = headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower === 'year' || hLower === 'vuosi' || hLower === 'period' || hLower === 'date'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('year') || hLower.includes('period') || hLower.includes('date') || hLower.includes('vuosi')
+    }) || 'Year'
+    
+    // Find Male column (exact match preferred)
+    const maleCol = headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower === 'male' || hLower === 'mies' || hLower === 'men'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return (hLower.includes('male') || hLower.includes('mies') || hLower.includes('man')) && 
+             !hLower.includes('female') && !hLower.includes('nainen') && !hLower.includes('woman')
+    })
+    
+    // Find Female column (exact match preferred)
+    const femaleCol = headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower === 'female' || hLower === 'nainen' || hLower === 'women' || hLower === 'woman'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('female') || hLower.includes('nainen') || hLower.includes('woman')
+    })
+    
+    // Find share columns (exact match preferred)
+    const shareOfMalesCol = headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower === 'share of males' || hLower === 'share of male' || hLower === 'male share'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('share') && hLower.includes('male') && 
+             !hLower.includes('female') && !hLower.includes('women') && !hLower.includes('woman')
+    })
+    
+    const shareOfFemalesCol = headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower === 'share of females' || hLower === 'share of female' || hLower === 'female share'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('share') && 
+             (hLower.includes('female') || hLower.includes('women') || hLower.includes('woman'))
+    })
+    
+    return {
+      year: yearKey,
+      male: maleCol || null,
+      female: femaleCol || null,
+      shareOfMales: shareOfMalesCol || null,
+      shareOfFemales: shareOfFemalesCol || null
+    }
+  }
+
+  // Explicit column mapping for Immigration chart
+  const getImmigrationColumnMapping = () => {
+    if (employeesGenderData.length === 0) return null
+    
+    const headers = Object.keys(employeesGenderData[0])
+    
+    // Find year column
+    const yearKey = headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower === 'year' || hLower === 'vuosi' || hLower === 'period' || hLower === 'date'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('year') || hLower.includes('period') || hLower.includes('date') || hLower.includes('vuosi')
+    }) || 'Year'
+    
+    // Find Finnish background column (exact match preferred)
+    const finnishCol = headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower === 'finnish background' || hLower === 'finnish'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('finnish') && hLower.includes('background')
+    })
+    
+    // Find Foreign background column (exact match preferred)
+    const foreignCol = headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower === 'foreign background' || hLower === 'foreign'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase()
+      return hLower.includes('foreign') && hLower.includes('background')
+    })
+    
+    // Find share columns (exact match preferred)
+    const shareOfFinnishCol = headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower === 'share of finnish' || hLower === 'finnish share'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower.includes('share') && hLower.includes('finnish') && !hLower.includes('foreign')
+    })
+    
+    const shareOfForeignCol = headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower === 'share of foreign' || hLower === 'foreign share'
+    }) || headers.find(h => {
+      const hLower = h.toLowerCase().trim()
+      return hLower.includes('share') && hLower.includes('foreign') && !hLower.includes('finnish')
+    })
+    
+    return {
+      year: yearKey,
+      finnish: finnishCol || null,
+      foreign: foreignCol || null,
+      shareOfFinnish: shareOfFinnishCol || null,
+      shareOfForeign: shareOfForeignCol || null
+    }
+  }
+
   // Get theme-aware colors for charts
   const getChartColors = () => {
     if (theme === 'light') {
@@ -694,6 +809,614 @@ const ExploreData = () => {
     }
   }
 
+  // Build gender chart config for BarChartTemplate
+  const buildGenderChartConfig = (): BarChartTemplateConfig | null => {
+    if (genderComparisonData.length === 0) return null
+
+    const chartColors = getChartColors()
+    
+    // Use explicit column mapping
+    const columnMapping = getGenderColumnMapping()
+    if (!columnMapping) return null
+    
+    const shareOfFemalesCol = columnMapping.shareOfFemales
+    const shareOfMalesCol = columnMapping.shareOfMales
+    
+    // Calculate gender statistics for contextual text
+    const getGenderAnalysis = (): string => {
+      if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
+        const latest = shareOfFemalesData[shareOfFemalesData.length - 1]
+        const earliest = shareOfFemalesData[0]
+        
+        const latestShare = latest.value
+        const earliestShare = earliest.value
+        const shareChange = latestShare - earliestShare
+        const latestYear = latest.name
+        const earliestYear = earliest.name
+        
+        let trendText = ''
+        if (shareChange > 2) {
+          trendText = `The share has increased significantly, rising from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}, representing a ${shareChange.toFixed(1)} percentage point increase.`
+        } else if (shareChange > 0) {
+          trendText = `The share has shown a modest increase, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else if (shareChange < -2) {
+          trendText = `The share has decreased, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else {
+          trendText = `The share has remained relatively stable, at around ${latestShare.toFixed(1)}% in ${latestYear}.`
+        }
+        
+        return `The share of female employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText} While the sector remains male-dominated, tracking the evolution of female representation provides important insights into the changing composition of the startup workforce.`
+      }
+      
+      if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
+        const latest = shareOfMalesData[shareOfMalesData.length - 1]
+        const earliest = shareOfMalesData[0]
+        
+        const latestShare = latest.value
+        const earliestShare = earliest.value
+        const shareChange = latestShare - earliestShare
+        const latestYear = latest.name
+        const earliestYear = earliest.name
+        
+        let trendText = ''
+        if (shareChange > 2) {
+          trendText = `The share has increased significantly, rising from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}, representing a ${shareChange.toFixed(1)} percentage point increase.`
+        } else if (shareChange > 0) {
+          trendText = `The share has shown a modest increase, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else if (shareChange < -2) {
+          trendText = `The share has decreased, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else {
+          trendText = `The share has remained relatively stable, at around ${latestShare.toFixed(1)}% in ${latestYear}.`
+        }
+        
+        return `The share of male employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText}`
+      }
+      
+      if (genderShareView === 'none' && genderComparisonData.length > 0) {
+        const latest = genderComparisonData[genderComparisonData.length - 1]
+        const earliest = genderComparisonData[0]
+        
+        const latestTotal = (latest.Male || 0) + (latest.Female || 0)
+        const earliestTotal = (earliest.Male || 0) + (earliest.Female || 0)
+        
+        const latestFemaleShare = latestTotal > 0 ? ((latest.Female || 0) / latestTotal) * 100 : 0
+        const earliestFemaleShare = earliestTotal > 0 ? ((earliest.Female || 0) / earliestTotal) * 100 : 0
+        
+        const latestYear = latest.name
+        const earliestYear = earliest.name
+        const femaleShareChange = latestFemaleShare - earliestFemaleShare
+        
+        let trendText = ''
+        if (femaleShareChange > 2) {
+          trendText = `The share of female employees has increased significantly, rising from ${earliestFemaleShare.toFixed(1)}% in ${earliestYear} to ${latestFemaleShare.toFixed(1)}% in ${latestYear}, representing a ${femaleShareChange.toFixed(1)} percentage point increase.`
+        } else if (femaleShareChange > 0) {
+          trendText = `The share of female employees has shown a modest increase, from ${earliestFemaleShare.toFixed(1)}% in ${earliestYear} to ${latestFemaleShare.toFixed(1)}% in ${latestYear}.`
+        } else if (femaleShareChange < -2) {
+          trendText = `The share of female employees has decreased, from ${earliestFemaleShare.toFixed(1)}% in ${earliestYear} to ${latestFemaleShare.toFixed(1)}% in ${latestYear}.`
+        } else {
+          trendText = `The share of female employees has remained relatively stable, at around ${latestFemaleShare.toFixed(1)}% in ${latestYear}.`
+        }
+        
+        return `The Finnish startup sector remains male-dominated, with female employees representing ${latestFemaleShare.toFixed(1)}% of the workforce in ${latestYear}. ${trendText} While progress has been made, there is still significant room for improvement in achieving gender balance within the startup ecosystem.`
+      }
+      
+      return ''
+    }
+    
+    const genderAnalysisText = getGenderAnalysis()
+    
+    // Determine year range and chart title based on view
+    let yearRange = ''
+    let chartTitle = ''
+    let chartData: any[] = []
+    let currentLabel = ''
+    let isShareView = genderShareView !== 'none'
+    
+    // Prepare bar chart data with toggles
+    const barChartData = genderComparisonData.map(row => ({
+      name: row.name,
+      ...(showMaleBar ? { Male: row.Male } : {}),
+      ...(showFemaleBar ? { Female: row.Female } : {})
+    }))
+    
+    if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
+      chartData = shareOfMalesData
+      yearRange = getYearRange(shareOfMalesData)
+      chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
+      currentLabel = 'Share of Males'
+    } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
+      chartData = shareOfFemalesData
+      yearRange = getYearRange(shareOfFemalesData)
+      chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
+      currentLabel = 'Share of Females'
+    } else if (genderComparisonData.length > 0) {
+      // Bar chart view
+      chartData = barChartData
+      yearRange = getYearRange(genderComparisonData)
+      chartTitle = 'Gender distribution of startup workers'
+      currentLabel = 'Employees'
+    } else {
+      return null
+    }
+    
+    // Determine chart color based on share view
+    const getChartColor = () => {
+      if (genderShareView === 'male-share') {
+        return '#4A90E2' // Blue for male
+      }
+      return '#E94B7E' // Pink for female
+    }
+    
+    const chartColor = getChartColor()
+    
+    // Build toggle buttons
+    const toggleButtons = [
+      {
+        label: 'Male',
+        isActive: genderShareView === 'none' && showMaleBar,
+        onClick: () => {
+          setGenderShareView('none')
+          setShowMaleBar(!showMaleBar)
+        }
+      },
+      {
+        label: 'Female',
+        isActive: genderShareView === 'none' && showFemaleBar,
+        onClick: () => {
+          setGenderShareView('none')
+          setShowFemaleBar(!showFemaleBar)
+        }
+      }
+    ]
+    
+    // Build view mode buttons
+    const viewModeButtons = []
+    if (shareOfMalesCol) {
+      viewModeButtons.push({
+        label: 'Share of Males',
+        value: 'male-share',
+        isActive: genderShareView === 'male-share',
+        onClick: () => {
+          setGenderShareView(genderShareView === 'male-share' ? 'none' : 'male-share')
+        }
+      })
+    }
+    if (shareOfFemalesCol) {
+      viewModeButtons.push({
+        label: 'Share of Females',
+        value: 'female-share',
+        isActive: genderShareView === 'female-share',
+        onClick: () => {
+          setGenderShareView(genderShareView === 'female-share' ? 'none' : 'female-share')
+        }
+      })
+    }
+    
+    // Build table columns
+    const tableColumns = isShareView 
+      ? [{ key: 'value', label: currentLabel }]
+      : [
+          ...(showMaleBar ? [{ key: 'Male', label: 'Male' }] : []),
+          ...(showFemaleBar ? [{ key: 'Female', label: 'Female' }] : [])
+        ]
+    
+    // Build table data
+    const tableData = isShareView
+      ? chartData.map(row => ({ name: row.name, value: row.value }))
+      : chartData
+    
+    const config: BarChartTemplateConfig = {
+      data: chartData,
+      title: chartTitle,
+      dataLabel: currentLabel,
+      chartType: isShareView ? 'area' : 'bar',
+      barSeries: isShareView ? undefined : [
+        {
+          dataKey: 'Male',
+          label: 'Male',
+          color: '#4A90E2',
+          gradientId: 'gradient-male-bar',
+          gradientStartColor: '#4A90E2',
+          gradientEndColor: '#4A90E2',
+          gradientStartOpacity: 0.9,
+          gradientEndOpacity: 0.6,
+          visible: showMaleBar,
+          onToggle: () => setShowMaleBar(!showMaleBar)
+        },
+        {
+          dataKey: 'Female',
+          label: 'Female',
+          color: '#E94B7E',
+          gradientId: 'gradient-female-bar',
+          gradientStartColor: '#E94B7E',
+          gradientEndColor: '#E94B7E',
+          gradientStartOpacity: 0.9,
+          gradientEndOpacity: 0.6,
+          visible: showFemaleBar,
+          onToggle: () => setShowFemaleBar(!showFemaleBar)
+        }
+      ],
+      areaConfig: isShareView ? {
+        dataKey: 'value',
+        color: chartColor,
+        gradientId: `gradient-${genderShareView}`,
+        gradientStartColor: chartColor,
+        gradientEndColor: chartColor,
+        gradientStartOpacity: 0.3,
+        gradientEndOpacity: 0.05
+      } : undefined,
+      filtersConfig: {
+        enabled: true,
+        toggleButtons,
+        viewModeButtons
+      },
+      yAxisConfig: {
+        formatter: (value: number) => isShareView ? `${value.toFixed(1)}%` : value.toLocaleString(),
+        width: isShareView ? 35 : undefined
+      },
+      tooltipConfig: {
+        formatter: (value: number, name: string) => {
+          if (isShareView) {
+            return [`${value.toFixed(2)}%`, currentLabel]
+          }
+          return [value.toLocaleString(), name]
+        }
+      },
+      contextText: genderAnalysisText,
+      onShowTable: () => {
+        const newValue = !showGenderTable
+        setShowGenderTable(newValue)
+      },
+      onFullscreen: () => setFullscreenChart('gender'),
+      showTable: showGenderTable,
+      chartColors,
+      windowWidth,
+      getXAxisInterval,
+      isRevenueValue: false,
+      tableData,
+      tableColumns,
+      renderTable: () => {
+        if (!tableData || tableData.length === 0) return null
+    return (
+      <div className="chart-data-table-container">
+        <table className="chart-data-table">
+          <thead>
+            <tr>
+              <th>Year</th>
+                  {tableColumns.map(col => (
+                    <th key={col.key}>{col.label}</th>
+                  ))}
+            </tr>
+          </thead>
+          <tbody>
+                {tableData.map((row, index) => (
+              <tr key={index}>
+                <td>{row.name}</td>
+                    {isShareView ? (
+                      <td>{row.value.toFixed(2)}%</td>
+                    ) : (
+                      <>
+                        {showMaleBar && <td>{row.Male?.toLocaleString() || '-'}</td>}
+                        {showFemaleBar && <td>{row.Female?.toLocaleString() || '-'}</td>}
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
+    }
+    
+    return config
+  }
+
+  // Build immigration chart config for BarChartTemplate
+  const buildImmigrationChartConfig = (): BarChartTemplateConfig | null => {
+    if (immigrationComparisonData.length === 0) return null
+
+    const chartColors = getChartColors()
+    
+    // Use explicit column mapping
+    const columnMapping = getImmigrationColumnMapping()
+    if (!columnMapping) return null
+    
+    const shareOfFinnishCol = columnMapping.shareOfFinnish
+    const shareOfForeignCol = columnMapping.shareOfForeign
+    
+    const getImmigrationAnalysis = (): string => {
+      if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
+        const latest = shareOfFinnishData[shareOfFinnishData.length - 1]
+        const earliest = shareOfFinnishData[0]
+        
+        const latestShare = latest.value
+        const earliestShare = earliest.value
+        const shareChange = latestShare - earliestShare
+        const latestYear = latest.name
+        const earliestYear = earliest.name
+        
+        let trendText = ''
+        if (shareChange > 2) {
+          trendText = `The share has increased significantly, rising from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}, representing a ${shareChange.toFixed(1)} percentage point increase.`
+        } else if (shareChange > 0) {
+          trendText = `The share has shown a modest increase, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else if (shareChange < -2) {
+          trendText = `The share has decreased, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else {
+          trendText = `The share has remained relatively stable, at around ${latestShare.toFixed(1)}% in ${latestYear}.`
+        }
+        
+        return `The share of Finnish background employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText}`
+      }
+      
+      if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
+        const latest = shareOfForeignData[shareOfForeignData.length - 1]
+        const earliest = shareOfForeignData[0]
+        
+        const latestShare = latest.value
+        const earliestShare = earliest.value
+        const shareChange = latestShare - earliestShare
+        const latestYear = latest.name
+        const earliestYear = earliest.name
+        
+        let trendText = ''
+        if (shareChange > 2) {
+          trendText = `The share has increased significantly, rising from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}, representing a ${shareChange.toFixed(1)} percentage point increase.`
+        } else if (shareChange > 0) {
+          trendText = `The share has shown a modest increase, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else if (shareChange < -2) {
+          trendText = `The share has decreased, from ${earliestShare.toFixed(1)}% in ${earliestYear} to ${latestShare.toFixed(1)}% in ${latestYear}.`
+        } else {
+          trendText = `The share has remained relatively stable, at around ${latestShare.toFixed(1)}% in ${latestYear}.`
+        }
+        
+        return `The share of foreign background employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
+      }
+      
+      if (immigrationShareView === 'none' && immigrationComparisonData.length > 0) {
+        const latest = immigrationComparisonData[immigrationComparisonData.length - 1]
+        const earliest = immigrationComparisonData[0]
+        
+        const latestTotal = latest.Total
+        const earliestTotal = earliest.Total
+        
+        const latestForeignShare = latestTotal > 0 ? (latest['Foreign'] / latestTotal) * 100 : 0
+        const earliestForeignShare = earliestTotal > 0 ? (earliest['Foreign'] / earliestTotal) * 100 : 0
+        
+        const latestYear = latest.name
+        const earliestYear = earliest.name
+        const foreignShareChange = latestForeignShare - earliestForeignShare
+        
+        let trendText = ''
+        if (foreignShareChange > 2) {
+          trendText = `The share of foreign background employees has increased significantly, rising from ${earliestForeignShare.toFixed(1)}% in ${earliestYear} to ${latestForeignShare.toFixed(1)}% in ${latestYear}, representing a ${foreignShareChange.toFixed(1)} percentage point increase.`
+        } else if (foreignShareChange > 0) {
+          trendText = `The share of foreign background employees has shown a modest increase, from ${earliestForeignShare.toFixed(1)}% in ${earliestYear} to ${latestForeignShare.toFixed(1)}% in ${latestYear}.`
+        } else if (foreignShareChange < -2) {
+          trendText = `The share of foreign background employees has decreased, from ${earliestForeignShare.toFixed(1)}% in ${earliestYear} to ${latestForeignShare.toFixed(1)}% in ${latestYear}.`
+        } else {
+          trendText = `The share of foreign background employees has remained relatively stable, at around ${latestForeignShare.toFixed(1)}% in ${latestYear}.`
+        }
+        
+        return `The Finnish startup sector workforce includes both Finnish and foreign background employees. In ${latestYear}, foreign background employees represented ${latestForeignShare.toFixed(1)}% of the total workforce in startup-based firms. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
+      }
+      
+      return ''
+    }
+    
+    const immigrationAnalysisText = getImmigrationAnalysis()
+    
+    // Prepare bar chart data with toggles
+    const barChartData = immigrationComparisonData.map(row => ({
+      name: row.name,
+      ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
+      ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
+    }))
+    
+    // Determine year range and chart title based on view
+    let yearRange = ''
+    let chartTitle = ''
+    let chartData: any[] = []
+    let currentLabel = ''
+    let isShareView = immigrationShareView !== 'none'
+    
+    if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
+      chartData = shareOfFinnishData
+      yearRange = getYearRange(shareOfFinnishData)
+      chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
+      currentLabel = 'Share of Finnish'
+    } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
+      chartData = shareOfForeignData
+      yearRange = getYearRange(shareOfForeignData)
+      chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
+      currentLabel = 'Share of Foreign'
+    } else if (immigrationComparisonData.length > 0) {
+      // Bar chart view
+      chartData = barChartData
+      yearRange = getYearRange(immigrationComparisonData)
+      chartTitle = 'Immigration status'
+      currentLabel = 'Employees'
+    } else {
+      return null
+    }
+    
+    // Determine chart color based on share view
+    const getChartColor = () => {
+      if (immigrationShareView === 'finnish-share') {
+        return '#3498DB' // Blue for Finnish
+      }
+      return '#9B59B6' // Purple for Foreign
+    }
+    
+    const chartColor = getChartColor()
+    
+    // Build toggle buttons
+    const toggleButtons = [
+      {
+        label: 'Finnish',
+        isActive: immigrationShareView === 'none' && showFinnishBar,
+        onClick: () => {
+          setImmigrationShareView('none')
+          setShowFinnishBar(!showFinnishBar)
+        }
+      },
+      {
+        label: 'Foreign',
+        isActive: immigrationShareView === 'none' && showForeignBar,
+        onClick: () => {
+          setImmigrationShareView('none')
+          setShowForeignBar(!showForeignBar)
+        }
+      }
+    ]
+    
+    // Build view mode buttons
+    const viewModeButtons = []
+    if (shareOfFinnishCol) {
+      viewModeButtons.push({
+        label: 'Share of Finnish',
+        value: 'finnish-share',
+        isActive: immigrationShareView === 'finnish-share',
+        onClick: () => {
+          setImmigrationShareView(immigrationShareView === 'finnish-share' ? 'none' : 'finnish-share')
+          setShowFinnishBar(true)
+          setShowForeignBar(true)
+        }
+      })
+    }
+    if (shareOfForeignCol) {
+      viewModeButtons.push({
+        label: 'Share of Foreign',
+        value: 'foreign-share',
+        isActive: immigrationShareView === 'foreign-share',
+        onClick: () => {
+          setImmigrationShareView(immigrationShareView === 'foreign-share' ? 'none' : 'foreign-share')
+          setShowFinnishBar(true)
+          setShowForeignBar(true)
+        }
+      })
+    }
+    
+    // Build table columns
+    const tableColumns = isShareView 
+      ? [{ key: 'value', label: currentLabel }]
+      : [
+          ...(showFinnishBar ? [{ key: 'Finnish', label: 'Finnish' }] : []),
+          ...(showForeignBar ? [{ key: 'Foreign', label: 'Foreign' }] : [])
+        ]
+    
+    // Build table data
+    const tableData = isShareView
+      ? chartData.map(row => ({ name: row.name, value: row.value }))
+      : chartData
+    
+    const config: BarChartTemplateConfig = {
+      data: chartData,
+      title: chartTitle,
+      dataLabel: currentLabel,
+      chartType: isShareView ? 'area' : 'bar',
+      barSeries: isShareView ? undefined : [
+        {
+          dataKey: 'Finnish',
+          label: 'Finnish',
+          color: '#3498DB',
+          gradientId: 'gradient-finnish-bar-immigration',
+          gradientStartColor: '#3498DB',
+          gradientEndColor: '#3498DB',
+          gradientStartOpacity: 0.9,
+          gradientEndOpacity: 0.6,
+          visible: showFinnishBar,
+          onToggle: () => setShowFinnishBar(!showFinnishBar)
+        },
+        {
+          dataKey: 'Foreign',
+          label: 'Foreign',
+          color: '#9B59B6',
+          gradientId: 'gradient-foreign-bar-immigration',
+          gradientStartColor: '#9B59B6',
+          gradientEndColor: '#9B59B6',
+          gradientStartOpacity: 0.9,
+          gradientEndOpacity: 0.6,
+          visible: showForeignBar,
+          onToggle: () => setShowForeignBar(!showForeignBar)
+        }
+      ],
+      areaConfig: isShareView ? {
+        dataKey: 'value',
+        color: chartColor,
+        gradientId: `gradient-${immigrationShareView}`,
+        gradientStartColor: chartColor,
+        gradientEndColor: chartColor,
+        gradientStartOpacity: 0.3,
+        gradientEndOpacity: 0.05
+      } : undefined,
+      filtersConfig: {
+        enabled: true,
+        toggleButtons,
+        viewModeButtons
+      },
+      yAxisConfig: {
+        formatter: (value: number) => isShareView ? `${value.toFixed(1)}%` : value.toLocaleString(),
+        width: isShareView ? 35 : undefined
+      },
+      tooltipConfig: {
+        formatter: (value: number, name: string) => {
+          if (isShareView) {
+            return [`${value.toFixed(2)}%`, currentLabel]
+          }
+          return [value.toLocaleString(), name]
+        }
+      },
+      contextText: immigrationAnalysisText,
+      onShowTable: () => {
+        const newValue = !showImmigrationTable
+        setShowImmigrationTable(newValue)
+      },
+      onFullscreen: () => setFullscreenChart('immigration'),
+      showTable: showImmigrationTable,
+      chartColors,
+      windowWidth,
+      getXAxisInterval,
+      isRevenueValue: false,
+      tableData,
+      tableColumns,
+      renderTable: () => {
+        if (!tableData || tableData.length === 0) return null
+        return (
+          <div className="chart-data-table-container">
+            <table className="chart-data-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  {tableColumns.map(col => (
+                    <th key={col.key}>{col.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.map((row, index) => (
+                  <tr key={index}>
+                    <td>{row.name}</td>
+                    {isShareView ? (
+                      <td>{row.value.toFixed(2)}%</td>
+                    ) : (
+                      <>
+                        {showFinnishBar && <td>{row.Finnish?.toLocaleString() || '-'}</td>}
+                        {showForeignBar && <td>{row.Foreign?.toLocaleString() || '-'}</td>}
+                      </>
+                    )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+      }
+    }
+    
+    return config
+  }
 
   // Build revenue chart config for GraphTemplate
   const buildRevenueChartConfig = (): GraphTemplateConfig | null => {
@@ -736,7 +1459,7 @@ const ExploreData = () => {
       }
 
       return allData
-        .filter(row => {
+      .filter(row => {
           const value = row[selectedColumn]
           return value !== undefined && typeof value === 'number' && value >= 0
         })
@@ -849,8 +1572,8 @@ const ExploreData = () => {
       },
       contextText: getContextText,
       onShowTable: () => {
-        const newValue = !showRevenueTable
-        setShowRevenueTable(newValue)
+                  const newValue = !showRevenueTable
+                  setShowRevenueTable(newValue)
       },
       onFullscreen: () => setFullscreenChart('revenue'),
       showTable: showRevenueTable,
@@ -923,24 +1646,24 @@ const ExploreData = () => {
         .filter(row => {
           const value = row[selectedColumn]
           return value !== undefined && typeof value === 'number' && value >= 0
-        })
-        .map(row => {
+      })
+      .map(row => {
           const year = row[yearKey] || 'N/A'
           const value = row[selectedColumn]
-          return {
-            name: String(year),
+        return {
+          name: String(year),
             value: value,
-            originalValue: value
-          }
-        })
-        .sort((a, b) => {
-          const yearA = parseInt(a.name)
-          const yearB = parseInt(b.name)
-          if (!isNaN(yearA) && !isNaN(yearB)) {
-            return yearA - yearB
-          }
-          return 0
-        })
+          originalValue: value
+        }
+      })
+      .sort((a, b) => {
+        const yearA = parseInt(a.name)
+        const yearB = parseInt(b.name)
+        if (!isNaN(yearA) && !isNaN(yearB)) {
+          return yearA - yearB
+        }
+        return 0
+      })
     }
 
     const chartData = getChartData()
@@ -1185,8 +1908,8 @@ const ExploreData = () => {
       },
       contextText: getContextText,
       onShowTable: () => {
-        const newValue = !showFirmsTable
-        setShowFirmsTable(newValue)
+                  const newValue = !showFirmsTable
+                  setShowFirmsTable(newValue)
       },
       onFullscreen: () => setFullscreenChart('firms'),
       showTable: showFirmsTable,
@@ -1209,6 +1932,143 @@ const ExploreData = () => {
         onFilterChange={(value) => setFirmsFilter(value as 'all' | 'finland' | 'early-stage' | 'later-stage')}
       />
     )
+                  }
+
+  // Build R&D chart config for GraphTemplate (first R&D metric only)
+  const buildRdiChartConfig = (): GraphTemplateConfig | null => {
+    if (!rdiData || rdiData.length === 0) return null
+
+    // Find RDI columns
+    const rdiColumns = Object.keys(rdiData[0] || {}).filter(col => {
+      const colLower = col.toLowerCase()
+      return !colLower.includes('year') && 
+             !colLower.includes('period') && 
+             !colLower.includes('date') &&
+             !colLower.includes('vuosi') &&
+             (colLower.includes('rdi') || 
+              colLower.includes('r&d') || 
+              colLower.includes('investments') ||
+              colLower.includes('research') ||
+              colLower.includes('development'))
+    })
+    
+    if (rdiColumns.length === 0) return null
+    
+    // Use first R&D metric
+    const metric = rdiColumns[0]
+    const metricLower = metric.toLowerCase()
+    const isRevenue = metricLower.includes('investment') || 
+                     metricLower.includes('rdi') || 
+                     metricLower.includes('r&d')
+    
+    // Find year column
+    const yearKey = Object.keys(rdiData[0] || {}).find(key => {
+      const keyLower = key.toLowerCase()
+      return keyLower.includes('year') || 
+             keyLower.includes('period') ||
+             keyLower.includes('date') ||
+             keyLower.includes('vuosi')
+    }) || 'Year'
+    
+    // Prepare chart data
+    const chartData = rdiData
+      .filter(row => row[metric] !== undefined && typeof row[metric] === 'number')
+      .map(row => {
+        const year = row[yearKey] || 
+                    row['vuosi'] || 
+                    row['Vuosi'] ||
+                    row['Period'] || 
+                    row['Date'] || 
+                    'N/A'
+        const value = row[metric]
+        return {
+          name: String(year),
+          value: isRevenue ? value / 1000000000 : value, // Convert to billions for currency
+          originalValue: value
+        }
+      })
+      .sort((a, b) => {
+        const yearA = parseInt(a.name)
+        const yearB = parseInt(b.name)
+        if (!isNaN(yearA) && !isNaN(yearB)) {
+          return yearA - yearB
+        }
+        return 0
+      })
+    
+    if (chartData.length === 0) return null
+    
+    const formatColumnName = (name: string): string => {
+      let formatted = name.replace(/r&d/gi, 'R&D')
+      return formatted
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .split(' ')
+        .map(word => {
+          if (word === 'R&D') {
+            return 'R&D'
+          }
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        })
+        .join(' ')
+    }
+    
+    const chartContext = getChartContext(metric)
+    const formattedName = formatColumnName(metric)
+    const chartColors = getChartColors()
+    const chartTitle = 'R&D investments'
+    
+    return {
+      data: chartData,
+      title: chartTitle,
+      dataLabel: formattedName,
+      filtersConfig: {
+        enabled: false, // R&D charts have filters disabled
+        options: [],
+        defaultFilter: 'all',
+        filterKey: 'rdiFilter'
+      },
+      yAxisConfig: {
+        formatter: (value: number) => {
+          if (isRevenue) {
+            return `€${value.toFixed(1)}B`
+          }
+          return value.toLocaleString()
+        },
+        width: 35
+      },
+      tooltipConfig: {
+        formatter: (_value: number, originalValue: number, label: string) => {
+          if (isRevenue) {
+            const billions = originalValue / 1000000000
+            return [`€${billions.toFixed(2)}B`, label]
+          }
+          return [originalValue.toLocaleString(), label]
+        }
+      },
+      styleConfig: {
+        strokeColor: '#A580F2',
+        gradientId: `gradient-rdi-${metric}`,
+        gradientStartColor: '#A580F2',
+        gradientEndColor: '#A580F2',
+        gradientStartOpacity: 0.3,
+        gradientEndOpacity: 0.05,
+        strokeWidth: 2
+      },
+      contextText: chartContext || undefined,
+      onShowTable: () => {
+        setShowRdiTable(prev => ({ ...prev, [metric]: !prev[metric] }))
+      },
+      onFullscreen: () => {
+        setFullscreenChart('rdi')
+        setFullscreenRdiMetric(metric)
+      },
+      showTable: showRdiTable[metric] || false,
+      chartColors,
+      windowWidth,
+      getXAxisInterval,
+      isRevenueValue: isRevenue
+    }
   }
 
   // Render fullscreen chart modal
@@ -1532,6 +2392,90 @@ const ExploreData = () => {
       currentLabel = formattedName
       isRevenueValue = isRdiRevenue
       chartTitle = 'R&D investments'
+    } else if (fullscreenChart === 'barometer') {
+      // Barometer fullscreen support
+      if (barometerData.length === 0) {
+        chartData = []
+        chartTitle = 'Startup Barometer'
+      } else {
+        const timeCol = Object.keys(barometerData[0] || {}).find(h => {
+          const hLower = h.toLowerCase()
+          return hLower.includes('time') || hLower.includes('date') || hLower.includes('period')
+        }) || null
+        
+        if (timeCol) {
+          // Get columns for selected tab
+          const headers = Object.keys(barometerData[0])
+          let searchTerms: string[] = []
+          switch (barometerSelectedTab) {
+            case 'financial':
+              searchTerms = ['financial', 'company financial']
+              break
+            case 'employees':
+              searchTerms = ['employees', 'number of employees']
+              break
+            case 'economy':
+              searchTerms = ['economy', 'surrounding economy']
+              break
+          }
+          
+          const pastCol = headers.find((h) => {
+            const hLower = h.toLowerCase()
+            return searchTerms.some(term => hLower.includes(term)) && 
+                   (hLower.includes('past') || hLower.includes('past 3mo'))
+          })
+          
+          const nextCol = headers.find((h) => {
+            const hLower = h.toLowerCase()
+            return searchTerms.some(term => hLower.includes(term)) && 
+                   (hLower.includes('next') || hLower.includes('next 3mo') || hLower.includes('expectation'))
+          })
+          
+          chartData = barometerData
+            .filter(row => row[timeCol] !== undefined && row[timeCol] !== null)
+            .map(row => {
+              const dataPoint: any = {
+                name: String(row[timeCol])
+              }
+              
+              if (pastCol) {
+                const pastValue = row[pastCol]
+                dataPoint.past = typeof pastValue === 'number' ? pastValue : (parseFloat(String(pastValue)) || null)
+              }
+              
+              if (nextCol) {
+                const nextValue = row[nextCol]
+                dataPoint.next = typeof nextValue === 'number' ? nextValue : (parseFloat(String(nextValue)) || null)
+              }
+              
+              return dataPoint
+            })
+            .filter(row => row.past !== null || row.next !== null)
+            .sort((a, b) => {
+              const timeA = parseInt(a.name) || a.name
+              const timeB = parseInt(b.name) || b.name
+              if (typeof timeA === 'number' && typeof timeB === 'number') {
+                return timeA - timeB
+              }
+              return String(timeA).localeCompare(String(timeB))
+            })
+          
+          // Set chart title based on selected tab
+          switch (barometerSelectedTab) {
+            case 'financial':
+              chartTitle = 'Financial situation'
+              break
+            case 'employees':
+              chartTitle = 'Number of employees'
+              break
+            case 'economy':
+              chartTitle = 'Surrounding economy'
+              break
+          }
+        }
+      }
+      currentLabel = 'Sentiment'
+      isRevenueValue = false
     }
 
     // Use the same interval function for fullscreen (can be adjusted if needed)
@@ -1715,6 +2659,68 @@ const ExploreData = () => {
                     />
                   )}
                 </BarChart>
+              ) : fullscreenChart === 'barometer' && chartData.length > 0 && chartData.some((d: any) => d.past !== null || d.next !== null) ? (
+                <AreaChart data={chartData} margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 60, top: 20, right: 30, left: 30 }}>
+                  <defs>
+                    <linearGradient id="gradient-barometer-past-fullscreen" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#A580F2" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#A580F2" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="gradient-barometer-next-fullscreen" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4A90E2" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#4A90E2" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.tick, fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    interval={getFullscreenXAxisInterval()}
+                  />
+                  <YAxis 
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.tick, fontSize: 12 }}
+                    tickFormatter={(value) => value.toFixed(1)}
+                    domain={[-50, 50]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: chartColors.tooltipBg, 
+                      border: 'none', 
+                      borderRadius: '8px',
+                      color: chartColors.tooltipText
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (value === null || value === undefined) return ['N/A', name]
+                      return [value.toFixed(1), name]
+                    }}
+                  />
+                  <Legend />
+                  {chartData.some((d: any) => d.past !== null) && (
+                    <Area 
+                      type="monotone" 
+                      dataKey="past" 
+                      stroke="#A580F2" 
+                      fill="url(#gradient-barometer-past-fullscreen)"
+                      strokeWidth={2}
+                      name="Past 3 months"
+                    />
+                  )}
+                  {chartData.some((d: any) => d.next !== null) && (
+                    <Area 
+                      type="monotone" 
+                      dataKey="next" 
+                      stroke="#4A90E2" 
+                      fill="url(#gradient-barometer-next-fullscreen)"
+                      strokeWidth={2}
+                      name="Next 3 months"
+                    />
+                  )}
+                </AreaChart>
               ) : (
                 <AreaChart data={chartData} margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 60, top: 20, right: 30, left: 30 }}>
                   <defs>
@@ -1795,9 +2801,15 @@ const ExploreData = () => {
   }
 
   return (
-    <div className="explore-data-page">
+    <div className={`explore-data-page ${USE_NEW_HERO_LAYOUT ? 'use-new-hero-layout' : ''}`}>
       {renderFullscreenModal()}
       {/* Header */}
+      {USE_NEW_HERO_LAYOUT ? (
+        <PageHero 
+          title="Explore Startup Data"
+          subtitle="Dive deep into the Finnish startup ecosystem statistics"
+        />
+      ) : (
       <header className="explore-header">
         <div className="explore-header-content">
           <button className="back-button" onClick={() => navigate('/')}>
@@ -1807,6 +2819,7 @@ const ExploreData = () => {
           <p className="explore-subtitle">Dive deep into the Finnish startup ecosystem statistics</p>
         </div>
       </header>
+      )}
 
       {/* Main Content */}
       <main className="explore-main">
@@ -1824,13 +2837,13 @@ const ExploreData = () => {
             {(regularMetrics.length > 0 || earlyStageRevenueMetric || scaleupRevenueMetric) && (
               <div className="charts-section">
                 <div className="section-header">
-                <h2 className="section-title">Economic impact of startups</h2>
-                  {lastUpdated && (
-                    <p className="data-updated">Data updated: {lastUpdated}</p>
-                  )}
+                <h2 className="section-title">
+                  <span className="section-title-desktop">Economic impact of startups</span>
+                  <span className="section-title-mobile">Economic Impact</span>
+                </h2>
                 </div>
                 
-                {/* Filterable Revenue Chart */}
+                {/* Check data availability for all 4 charts */}
                 {(() => {
                   const hasRevenue = regularMetrics.some(metric => {
                     const metricLower = metric.toLowerCase()
@@ -1842,15 +2855,6 @@ const ExploreData = () => {
                                           !metricLower.includes('stage')
                   })
                   
-                  // Show revenue chart if we have revenue data, even without early stage filter
-                  if (hasRevenue) {
-                    return renderFilterableRevenueChart()
-                  }
-                  return null
-                })()}
-                
-                {/* Filterable Employees Chart */}
-                {(() => {
                   const hasEmployees = regularMetrics.some(metric => {
                       const metricLower = metric.toLowerCase()
                     return (metricLower.includes('employees') || 
@@ -1871,14 +2875,6 @@ const ExploreData = () => {
                              keyLower.includes('suomi'))
                   })
                   
-                  if (hasEmployees && hasEmployeesInFinland) {
-                    return renderFilterableEmployeesChart()
-                  }
-                  return null
-                })()}
-                
-                {/* Filterable Firms Chart */}
-                {(() => {
                   const hasFirms = regularMetrics.some(metric => {
                     const metricLower = metric.toLowerCase()
                     return (metricLower.includes('firms') || 
@@ -1892,17 +2888,63 @@ const ExploreData = () => {
                             !metricLower.includes('number')
                   })
                   
-                  // Show chart if firms column exists OR if we have Number Startups/Scaleups
-                  if (hasFirms || numberStartupsMetric || numberScaleupsMetric) {
-                    return renderFilterableFirmsChart()
-                    }
-                    return null
+                  const hasRdi = rdiData.length > 0 && (() => {
+                    const rdiColumns = Object.keys(rdiData[0] || {}).filter(col => {
+                      const colLower = col.toLowerCase()
+                      return !colLower.includes('year') && 
+                             !colLower.includes('period') && 
+                             !colLower.includes('date') &&
+                             !colLower.includes('vuosi') &&
+                             (colLower.includes('rdi') || 
+                              colLower.includes('r&d') || 
+                              colLower.includes('investments') ||
+                              colLower.includes('research') ||
+                              colLower.includes('development'))
+                    })
+                    return rdiColumns.length > 0
+                  })()
+                  
+                  // Render Economic Impact Explorer if flag is enabled
+                  if (USE_ECON_IMPACT_EXPLORER) {
+                    return (
+                      <EconomicImpactExplorer
+                        buildRevenueConfig={buildRevenueChartConfig}
+                        buildEmployeesConfig={buildEmployeesChartConfig}
+                        buildFirmsConfig={buildFirmsChartConfig}
+                        buildRdiConfig={buildRdiChartConfig}
+                        revenueFilter={revenueFilter}
+                        setRevenueFilter={setRevenueFilter}
+                        employeesFilter={employeesFilter}
+                        setEmployeesFilter={setEmployeesFilter}
+                        firmsFilter={firmsFilter}
+                        setFirmsFilter={setFirmsFilter}
+                        hasRevenue={hasRevenue}
+                        hasEmployees={hasEmployees && hasEmployeesInFinland}
+                        hasFirms={hasFirms || !!numberStartupsMetric || !!numberScaleupsMetric}
+                        hasRdi={hasRdi}
+                      />
+                    )
+                  }
+                  
+                  // Otherwise render individual charts (existing behavior)
+                  return (
+                    <>
+                      {/* Filterable Revenue Chart */}
+                      {hasRevenue && renderFilterableRevenueChart()}
+                      
+                      {/* Filterable Employees Chart */}
+                      {hasEmployees && hasEmployeesInFinland && renderFilterableEmployeesChart()}
+                      
+                      {/* Filterable Firms Chart */}
+                      {(hasFirms || numberStartupsMetric || numberScaleupsMetric) && renderFilterableFirmsChart()}
+                    </>
+                  )
                   })()}
               </div>
             )}
             
-            {/* R&D Charts Section */}
-            {rdiData.length > 0 && (() => {
+            {/* R&D Charts Section - Only render if explorer is disabled */}
+            {!USE_ECON_IMPACT_EXPLORER && rdiData.length > 0 && (() => {
               // Find RDI column
               const rdiColumns = Object.keys(rdiData[0] || {}).filter(col => {
                 const colLower = col.toLowerCase()
@@ -2001,19 +3043,19 @@ const ExploreData = () => {
                         },
                         yAxisConfig: {
                           formatter: (value: number) => {
-                            if (isRevenue) {
-                              return `€${value.toFixed(1)}B`
-                            }
-                            return value.toLocaleString()
+                                      if (isRevenue) {
+                                        return `€${value.toFixed(1)}B`
+                                      }
+                                      return value.toLocaleString()
                           },
                           width: 35
                         },
                         tooltipConfig: {
                           formatter: (_value: number, originalValue: number, label: string) => {
-                            if (isRevenue) {
+                                      if (isRevenue) {
                               const billions = originalValue / 1000000000
                               return [`€${billions.toFixed(2)}B`, label]
-                            }
+                                      }
                             return [originalValue.toLocaleString(), label]
                           }
                         },
@@ -2031,8 +3073,8 @@ const ExploreData = () => {
                           setShowRdiTable(prev => ({ ...prev, [metric]: !prev[metric] }))
                         },
                         onFullscreen: () => {
-                          setFullscreenChart('rdi')
-                          setFullscreenRdiMetric(metric)
+                                setFullscreenChart('rdi')
+                                setFullscreenRdiMetric(metric)
                         },
                         showTable: showRdiTable[metric] || false,
                         chartColors,
@@ -2055,18 +3097,39 @@ const ExploreData = () => {
               )
             })()}
             
-            {/* Employees Gender Charts Section */}
-            {genderComparisonData.length > 0 && (
+            {/* Employees Workforce Charts Section */}
+            {(genderComparisonData.length > 0 || immigrationComparisonData.length > 0) && (
               <div className="charts-section charts-section-employees">
                 <div className="section-header">
-                  <div>
-                    <h2 className="section-title">What kind of workers are employed by Finnish startups?</h2>
-                    <p className="section-description">Discover the composition of employees in startup-based firms in Finland</p>
-                  </div>
+                  <h2 className="section-title">Employees of Finnish Startups</h2>
                 </div>
+                <p className="section-description">Discover the composition of employees in startup-based firms in Finland</p>
                 
-                {/* Combined Male/Female Comparison Chart */}
-                {(() => {
+                {/* Render Workforce Explorer if flag is enabled */}
+                {USE_WORKFORCE_EXPLORER ? (
+                  <WorkforceExplorer
+                    buildGenderConfig={buildGenderChartConfig}
+                    buildImmigrationConfig={buildImmigrationChartConfig}
+                    hasGender={genderComparisonData.length > 0}
+                    hasImmigration={immigrationComparisonData.length > 0}
+                    onShowTable={() => {
+                      if (workforceSelectedTab === 'gender') {
+                        setShowGenderTable(!showGenderTable)
+                      } else {
+                        setShowImmigrationTable(!showImmigrationTable)
+                      }
+                    }}
+                    onFullscreen={(tab) => {
+                      setFullscreenChart(tab)
+                    }}
+                    showTable={workforceSelectedTab === 'gender' ? showGenderTable : showImmigrationTable}
+                    selectedTab={workforceSelectedTab}
+                    onTabChange={setWorkforceSelectedTab}
+                  />
+                ) : (
+                  <>
+                    {/* Gender Chart (old implementation) */}
+                    {genderComparisonData.length > 0 && (() => {
                   const chartColors = getChartColors()
                   
                   // Find share of females and males columns
@@ -2087,9 +3150,9 @@ const ExploreData = () => {
                       })
                     : null
                   
-                  // Build gender chart config
-                  const buildGenderChartConfig = (): BarChartTemplateConfig | null => {
-                    // Calculate gender statistics for contextual text
+                      // Build gender chart config (local version for old implementation)
+                      const buildGenderChartConfigLocal = (): BarChartTemplateConfig | null => {
+                  // Calculate gender statistics for contextual text
                     const getGenderAnalysis = (): string => {
                     if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
                       const latest = shareOfFemalesData[shareOfFemalesData.length - 1]
@@ -2170,68 +3233,68 @@ const ExploreData = () => {
                     return ''
                   }
                   
-                    const genderAnalysisText = getGenderAnalysis()
-                    
-                    // Determine year range and chart title based on view
-                    let yearRange = ''
-                    let chartTitle = ''
-                    let chartData: any[] = []
-                    let currentLabel = ''
-                    let isShareView = genderShareView !== 'none'
-                    
-                    // Prepare bar chart data with toggles
-                    const barChartData = genderComparisonData.map(row => ({
-                      name: row.name,
-                      ...(showMaleBar ? { Male: row.Male } : {}),
-                      ...(showFemaleBar ? { Female: row.Female } : {})
-                    }))
-                    
-                    if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
-                      chartData = shareOfMalesData
-                      yearRange = getYearRange(shareOfMalesData)
-                      chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
-                      currentLabel = 'Share of Males'
-                    } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
-                      chartData = shareOfFemalesData
-                      yearRange = getYearRange(shareOfFemalesData)
-                      chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
-                      currentLabel = 'Share of Females'
-                    } else if (genderComparisonData.length > 0) {
-                      // Bar chart view
-                      chartData = barChartData
-                      yearRange = getYearRange(genderComparisonData)
+                  const genderAnalysisText = getGenderAnalysis()
+                  
+                  // Determine year range and chart title based on view
+                  let yearRange = ''
+                  let chartTitle = ''
+                  let chartData: any[] = []
+                  let currentLabel = ''
+                  let isShareView = genderShareView !== 'none'
+                  
+                  // Prepare bar chart data with toggles
+                  const barChartData = genderComparisonData.map(row => ({
+                    name: row.name,
+                    ...(showMaleBar ? { Male: row.Male } : {}),
+                    ...(showFemaleBar ? { Female: row.Female } : {})
+                  }))
+                  
+                  if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
+                    chartData = shareOfMalesData
+                    yearRange = getYearRange(shareOfMalesData)
+                    chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
+                    currentLabel = 'Share of Males'
+                  } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
+                    chartData = shareOfFemalesData
+                    yearRange = getYearRange(shareOfFemalesData)
+                    chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
+                    currentLabel = 'Share of Females'
+                  } else if (genderComparisonData.length > 0) {
+                    // Bar chart view
+                    chartData = barChartData
+                    yearRange = getYearRange(genderComparisonData)
                       chartTitle = 'Gender distribution of startup workers'
-                      currentLabel = 'Employees'
-                    } else {
+                    currentLabel = 'Employees'
+                  } else {
                       return null
+                  }
+                  
+                  // Determine chart color based on share view
+                  const getChartColor = () => {
+                    if (genderShareView === 'male-share') {
+                      return '#4A90E2' // Blue for male
                     }
-                    
-                    // Determine chart color based on share view
-                    const getChartColor = () => {
-                      if (genderShareView === 'male-share') {
-                        return '#4A90E2' // Blue for male
-                      }
-                      return '#E94B7E' // Pink for female
-                    }
-                    
-                    const chartColor = getChartColor()
-                    
+                    return '#E94B7E' // Pink for female
+                  }
+                  
+                  const chartColor = getChartColor()
+                  
                     // Build toggle buttons
                     const toggleButtons = [
                       {
                         label: 'Male',
                         isActive: genderShareView === 'none' && showMaleBar,
                         onClick: () => {
-                          setGenderShareView('none')
-                          setShowMaleBar(!showMaleBar)
+                                setGenderShareView('none')
+                                setShowMaleBar(!showMaleBar)
                         }
                       },
                       {
                         label: 'Female',
                         isActive: genderShareView === 'none' && showFemaleBar,
                         onClick: () => {
-                          setGenderShareView('none')
-                          setShowFemaleBar(!showFemaleBar)
+                                setGenderShareView('none')
+                                setShowFemaleBar(!showFemaleBar)
                         }
                       }
                     ]
@@ -2244,7 +3307,7 @@ const ExploreData = () => {
                         value: 'male-share',
                         isActive: genderShareView === 'male-share',
                         onClick: () => {
-                          setGenderShareView(genderShareView === 'male-share' ? 'none' : 'male-share')
+                                  setGenderShareView(genderShareView === 'male-share' ? 'none' : 'male-share')
                         }
                       })
                     }
@@ -2254,7 +3317,7 @@ const ExploreData = () => {
                         value: 'female-share',
                         isActive: genderShareView === 'female-share',
                         onClick: () => {
-                          setGenderShareView(genderShareView === 'female-share' ? 'none' : 'female-share')
+                                  setGenderShareView(genderShareView === 'female-share' ? 'none' : 'female-share')
                         }
                       })
                     }
@@ -2345,33 +3408,33 @@ const ExploreData = () => {
                       renderTable: () => {
                         if (!tableData || tableData.length === 0) return null
                         return (
-                          <div className="chart-data-table-container">
-                            <table className="chart-data-table">
-                              <thead>
-                                <tr>
-                                  <th>Year</th>
+                        <div className="chart-data-table-container">
+                          <table className="chart-data-table">
+                            <thead>
+                              <tr>
+                                <th>Year</th>
                                   {tableColumns.map(col => (
                                     <th key={col.key}>{col.label}</th>
                                   ))}
-                                </tr>
-                              </thead>
-                              <tbody>
+                              </tr>
+                            </thead>
+                            <tbody>
                                 {tableData.map((row, index) => (
-                                  <tr key={index}>
-                                    <td>{row.name}</td>
-                                    {isShareView ? (
-                                      <td>{row.value.toFixed(2)}%</td>
-                                    ) : (
-                                      <>
-                                        {showMaleBar && <td>{row.Male?.toLocaleString() || '-'}</td>}
-                                        {showFemaleBar && <td>{row.Female?.toLocaleString() || '-'}</td>}
-                                      </>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                                <tr key={index}>
+                                  <td>{row.name}</td>
+                                  {isShareView ? (
+                                    <td>{row.value.toFixed(2)}%</td>
+                                  ) : (
+                                    <>
+                                      {showMaleBar && <td>{row.Male?.toLocaleString() || '-'}</td>}
+                                      {showFemaleBar && <td>{row.Female?.toLocaleString() || '-'}</td>}
+                                    </>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                         )
                       }
                     }
@@ -2379,29 +3442,24 @@ const ExploreData = () => {
                     return config
                   }
                   
-                  const genderConfig = buildGenderChartConfig()
-                  
-                  if (!genderConfig) {
-                    return (
-                      <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                        <p>Gender data not available.</p>
-                        <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                          Make sure your employees_gender tab has the required columns.
-                        </p>
-                      </div>
-                    )
-                  }
-                  
-                  return <BarChartTemplate config={genderConfig} />
+                      const genderConfig = buildGenderChartConfigLocal()
+                      
+                      if (!genderConfig) {
+                        return (
+                          <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                            <p>Gender data not available.</p>
+                            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                              Make sure your employees_gender tab has the required columns.
+                            </p>
+                    </div>
+                  )
+                      }
+                      
+                      return <BarChartTemplate config={genderConfig} />
                 })()}
-              </div>
-            )}
-            
-            {/* Employees Immigration Status Charts Section */}
-            {immigrationComparisonData.length > 0 && (
-              <div className="charts-section charts-section-employees">
-                {/* Immigration Status Comparison Chart */}
-                {(() => {
+                
+                {/* Immigration Chart (old implementation) */}
+                {immigrationComparisonData.length > 0 && (() => {
                   const chartColors = getChartColors()
                   
                   // Find share columns
@@ -2421,8 +3479,8 @@ const ExploreData = () => {
                       })
                     : null
                   
-                  // Build immigration chart config
-                  const buildImmigrationChartConfig = (): BarChartTemplateConfig | null => {
+                  // Build immigration chart config (local version for old implementation)
+                  const buildImmigrationChartConfigLocal = (): BarChartTemplateConfig | null => {
                     const getImmigrationAnalysis = (): string => {
                     if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
                       const latest = shareOfFinnishData[shareOfFinnishData.length - 1]
@@ -2503,68 +3561,68 @@ const ExploreData = () => {
                     return ''
                   }
                   
-                    const immigrationAnalysisText = getImmigrationAnalysis()
-                    
-                    // Prepare bar chart data with toggles
-                    const barChartData = immigrationComparisonData.map(row => ({
-                      name: row.name,
-                      ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
-                      ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
-                    }))
-                    
-                    // Determine year range and chart title based on view
-                    let yearRange = ''
-                    let chartTitle = ''
-                    let chartData: any[] = []
-                    let currentLabel = ''
-                    let isShareView = immigrationShareView !== 'none'
-                    
-                    if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
-                      chartData = shareOfFinnishData
-                      yearRange = getYearRange(shareOfFinnishData)
-                      chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
-                      currentLabel = 'Share of Finnish'
-                    } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
-                      chartData = shareOfForeignData
-                      yearRange = getYearRange(shareOfForeignData)
-                      chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
-                      currentLabel = 'Share of Foreign'
-                    } else if (immigrationComparisonData.length > 0) {
-                      // Bar chart view
-                      chartData = barChartData
-                      yearRange = getYearRange(immigrationComparisonData)
+                  const immigrationAnalysisText = getImmigrationAnalysis()
+                  
+                  // Prepare bar chart data with toggles
+                  const barChartData = immigrationComparisonData.map(row => ({
+                    name: row.name,
+                    ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
+                    ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
+                  }))
+                  
+                  // Determine year range and chart title based on view
+                  let yearRange = ''
+                  let chartTitle = ''
+                  let chartData: any[] = []
+                  let currentLabel = ''
+                  let isShareView = immigrationShareView !== 'none'
+                  
+                  if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
+                    chartData = shareOfFinnishData
+                    yearRange = getYearRange(shareOfFinnishData)
+                    chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
+                    currentLabel = 'Share of Finnish'
+                  } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
+                    chartData = shareOfForeignData
+                    yearRange = getYearRange(shareOfForeignData)
+                    chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
+                    currentLabel = 'Share of Foreign'
+                  } else if (immigrationComparisonData.length > 0) {
+                    // Bar chart view
+                    chartData = barChartData
+                    yearRange = getYearRange(immigrationComparisonData)
                       chartTitle = 'Immigration status'
-                      currentLabel = 'Employees'
-                    } else {
+                    currentLabel = 'Employees'
+                  } else {
                       return null
+                  }
+                  
+                  // Determine chart color based on share view
+                  const getChartColor = () => {
+                    if (immigrationShareView === 'finnish-share') {
+                      return '#3498DB' // Blue for Finnish
                     }
-                    
-                    // Determine chart color based on share view
-                    const getChartColor = () => {
-                      if (immigrationShareView === 'finnish-share') {
-                        return '#3498DB' // Blue for Finnish
-                      }
-                      return '#9B59B6' // Purple for Foreign
-                    }
-                    
-                    const chartColor = getChartColor()
-                    
+                    return '#9B59B6' // Purple for Foreign
+                  }
+                  
+                  const chartColor = getChartColor()
+                  
                     // Build toggle buttons
                     const toggleButtons = [
                       {
                         label: 'Finnish',
                         isActive: immigrationShareView === 'none' && showFinnishBar,
                         onClick: () => {
-                          setImmigrationShareView('none')
-                          setShowFinnishBar(!showFinnishBar)
+                                setImmigrationShareView('none')
+                                setShowFinnishBar(!showFinnishBar)
                         }
                       },
                       {
                         label: 'Foreign',
                         isActive: immigrationShareView === 'none' && showForeignBar,
                         onClick: () => {
-                          setImmigrationShareView('none')
-                          setShowForeignBar(!showForeignBar)
+                                setImmigrationShareView('none')
+                                setShowForeignBar(!showForeignBar)
                         }
                       }
                     ]
@@ -2577,9 +3635,9 @@ const ExploreData = () => {
                         value: 'finnish-share',
                         isActive: immigrationShareView === 'finnish-share',
                         onClick: () => {
-                          setImmigrationShareView(immigrationShareView === 'finnish-share' ? 'none' : 'finnish-share')
-                          setShowFinnishBar(true)
-                          setShowForeignBar(true)
+                                  setImmigrationShareView(immigrationShareView === 'finnish-share' ? 'none' : 'finnish-share')
+                                  setShowFinnishBar(true)
+                                  setShowForeignBar(true)
                         }
                       })
                     }
@@ -2589,9 +3647,9 @@ const ExploreData = () => {
                         value: 'foreign-share',
                         isActive: immigrationShareView === 'foreign-share',
                         onClick: () => {
-                          setImmigrationShareView(immigrationShareView === 'foreign-share' ? 'none' : 'foreign-share')
-                          setShowFinnishBar(true)
-                          setShowForeignBar(true)
+                                  setImmigrationShareView(immigrationShareView === 'foreign-share' ? 'none' : 'foreign-share')
+                                  setShowFinnishBar(true)
+                                  setShowForeignBar(true)
                         }
                       })
                     }
@@ -2682,55 +3740,76 @@ const ExploreData = () => {
                       renderTable: () => {
                         if (!tableData || tableData.length === 0) return null
                         return (
-                          <div className="chart-data-table-container">
-                            <table className="chart-data-table">
-                              <thead>
-                                <tr>
-                                  <th>Year</th>
+                        <div className="chart-data-table-container">
+                          <table className="chart-data-table">
+                            <thead>
+                              <tr>
+                                <th>Year</th>
                                   {tableColumns.map(col => (
                                     <th key={col.key}>{col.label}</th>
                                   ))}
-                                </tr>
-                              </thead>
-                              <tbody>
+                              </tr>
+                            </thead>
+                            <tbody>
                                 {tableData.map((row, index) => (
-                                  <tr key={index}>
-                                    <td>{row.name}</td>
-                                    {isShareView ? (
-                                      <td>{row.value.toFixed(2)}%</td>
-                                    ) : (
-                                      <>
-                                        {showFinnishBar && <td>{row.Finnish?.toLocaleString() || '-'}</td>}
-                                        {showForeignBar && <td>{row.Foreign?.toLocaleString() || '-'}</td>}
-                                      </>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )
+                                <tr key={index}>
+                                  <td>{row.name}</td>
+                                  {isShareView ? (
+                                    <td>{row.value.toFixed(2)}%</td>
+                                  ) : (
+                                    <>
+                                      {showFinnishBar && <td>{row.Finnish?.toLocaleString() || '-'}</td>}
+                                      {showForeignBar && <td>{row.Foreign?.toLocaleString() || '-'}</td>}
+                                    </>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                    </div>
+                  )
                       }
                     }
                     
                     return config
                   }
                   
-                  const immigrationConfig = buildImmigrationChartConfig()
-                  
-                  if (!immigrationConfig) {
-                    return (
-                      <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                        <p>Immigration data not available.</p>
-                        <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                          Make sure your employees_gender tab has the required columns.
-                        </p>
-                      </div>
-                    )
-                  }
-                  
-                  return <BarChartTemplate config={immigrationConfig} />
+                      const immigrationConfig = buildImmigrationChartConfigLocal()
+                      
+                      if (!immigrationConfig) {
+                  return (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                            <p>Immigration data not available.</p>
+                            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                              Make sure your employees_gender tab has the required columns.
+                            </p>
+                  </div>
+                  )
+                      }
+                      
+                      return <BarChartTemplate config={immigrationConfig} />
                 })()}
+                  </>
+                )}
+              </div>
+            )}
+            
+            {/* Startup Barometer Section */}
+            {USE_BAROMETER_SECTION && (
+              <div className="charts-section charts-section-barometer">
+                <div className="section-header">
+                  <h2 className="section-title">Startup Barometer</h2>
+                </div>
+                <p className="section-description">Startup Barometer is a quarterly survey sent to Finnish Startup Community members</p>
+                
+                <BarometerExplorer 
+                  barometerData={barometerData}
+                  onShowTable={() => setShowBarometerTable(!showBarometerTable)}
+                  onFullscreen={() => setFullscreenChart('barometer')}
+                  showTable={showBarometerTable}
+                  selectedTab={barometerSelectedTab}
+                  onTabChange={setBarometerSelectedTab}
+                />
               </div>
             )}
           </div>

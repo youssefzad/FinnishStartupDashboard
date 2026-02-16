@@ -17,7 +17,7 @@ export interface StartupMetrics {
 }
 
 // Load data from localStorage (fast) or Google Sheets (backup)
-function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi: any[], lastUpdated?: string } | null {
+function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi: any[], barometer: any[], lastUpdated?: string } | null {
   try {
     const stored = localStorage.getItem('startupData')
     if (!stored) return null
@@ -27,6 +27,7 @@ function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi:
       main: data.main || [],
       employeesGender: data.employeesGender || [],
       rdi: data.rdi || [],
+      barometer: data.barometer || [],
       lastUpdated: data.lastUpdated
     }
   } catch (error) {
@@ -35,13 +36,13 @@ function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi:
 }
 
 // Load data from local JSON files (primary source)
-async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: any[], rdi: any[] }> {
+async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[] }> {
   try {
     // Load main data
     const mainResponse = await fetch('/data/main-data.json')
     if (!mainResponse.ok) {
       console.warn('Main data JSON file not found at /data/main-data.json')
-      return { main: [], employeesGender: [], rdi: [] }
+      return { main: [], employeesGender: [], rdi: [], barometer: [] }
     }
     const main = await mainResponse.json()
     
@@ -69,20 +70,54 @@ async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: 
       console.log('No RDI data file found (optional)')
     }
     
+    // Load barometer data (optional)
+    let barometer: any[] = []
+    try {
+      const barometerResponse = await fetch('/data/barometer-data.json')
+      // DEV-only debug logging
+      if (import.meta.env.DEV) {
+        console.log(`[DEBUG] Barometer fetch status: ${barometerResponse.status} ${barometerResponse.statusText}`)
+        console.log(`[DEBUG] Barometer fetch URL: /data/barometer-data.json`)
+      }
+      if (barometerResponse.ok) {
+        barometer = await barometerResponse.json()
+        // DEV-only debug logging
+        if (import.meta.env.DEV) {
+          console.log(`[DEBUG] Barometer data parsed: ${barometer.length} rows`)
+          if (barometer.length > 0) {
+            console.log(`[DEBUG] Barometer data sample:`, barometer[0])
+            console.log(`[DEBUG] Barometer columns:`, Object.keys(barometer[0]))
+          }
+        }
+      } else {
+        // DEV-only debug logging
+        if (import.meta.env.DEV) {
+          console.warn(`[DEBUG] Barometer fetch failed: ${barometerResponse.status} ${barometerResponse.statusText}`)
+        }
+      }
+    } catch (error) {
+      // Barometer data is optional, so we ignore errors
+      if (import.meta.env.DEV) {
+        console.warn('[DEBUG] Barometer fetch error:', error)
+      }
+      console.log('No barometer data file found (optional)')
+    }
+    
     console.log('✅ Loaded data from local JSON files')
     console.log(`   Main data: ${main.length} rows`)
     console.log(`   Gender data: ${employeesGender.length} rows`)
     console.log(`   RDI data: ${rdi.length} rows`)
+    console.log(`   Barometer data: ${barometer.length} rows`)
     
-    return { main, employeesGender, rdi }
+    return { main, employeesGender, rdi, barometer }
   } catch (error) {
     console.error('Error loading data from JSON files:', error)
-    return { main: [], employeesGender: [], rdi: [] }
+    return { main: [], employeesGender: [], rdi: [], barometer: [] }
   }
 }
 
 // Load data from multiple tabs
-export async function loadAllTabsData(): Promise<{ main: any[], employeesGender: any[], rdi: any[] }> {
+export async function loadAllTabsData(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[] }> {
   // Primary: Load from local JSON files (fast, no network requests)
   const jsonData = await loadDataFromJSONFiles()
   if (jsonData.main.length > 0) {
@@ -96,7 +131,8 @@ export async function loadAllTabsData(): Promise<{ main: any[], employeesGender:
     return {
       main: localData.main,
       employeesGender: localData.employeesGender || [],
-      rdi: localData.rdi || []
+      rdi: localData.rdi || [],
+      barometer: localData.barometer || []
     }
   }
   
@@ -104,10 +140,10 @@ export async function loadAllTabsData(): Promise<{ main: any[], employeesGender:
   console.warn('⚠️ No JSON data files found. Loading from Excel file as last resort...')
   try {
     const main = await loadStartupData()
-    return { main, employeesGender: [], rdi: [] }
+    return { main, employeesGender: [], rdi: [], barometer: [] }
   } catch (error) {
     console.error('Failed to load data from any source:', error)
-    return { main: [], employeesGender: [], rdi: [] }
+    return { main: [], employeesGender: [], rdi: [], barometer: [] }
   }
 }
 

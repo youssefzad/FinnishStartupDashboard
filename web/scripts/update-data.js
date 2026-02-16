@@ -42,6 +42,10 @@ const GOOGLE_SHEET_ID = env.VITE_GOOGLE_SHEET_ID
 const GOOGLE_SHEET_GID = env.VITE_GOOGLE_SHEET_GID || '0'
 const EMPLOYEES_GENDER_GID = env.VITE_EMPLOYEES_GENDER_GID
 const RDI_GID = env.VITE_RDI_GID
+// Use BAROMETER_SHEET_ID and BAROMETER_GID (without VITE_ prefix) for Node script
+// Fallback to VITE_ prefixed vars for backwards compatibility, then to known values
+const BAROMETER_SHEET_ID = env.BAROMETER_SHEET_ID || env.VITE_BAROMETER_SHEET_ID || '110mKqlfwoKFeM87tTNX22UFbXmZ2h2V4t936tbXBiD0'
+const BAROMETER_GID = env.BAROMETER_GID || env.VITE_BAROMETER_GID || '0'
 
 if (!GOOGLE_SHEET_ID) {
   console.error('❌ Error: VITE_GOOGLE_SHEET_ID not found in .env file')
@@ -53,7 +57,9 @@ console.log('📋 Configuration loaded:')
 console.log(`   Google Sheet ID: ${GOOGLE_SHEET_ID}`)
 console.log(`   Main data GID: ${GOOGLE_SHEET_GID}`)
 console.log(`   Employees gender GID: ${EMPLOYEES_GENDER_GID || 'NOT SET'}`)
-console.log(`   RDI GID: ${RDI_GID || 'NOT SET'}\n`)
+console.log(`   RDI GID: ${RDI_GID || 'NOT SET'}`)
+console.log(`   Barometer Sheet ID: ${BAROMETER_SHEET_ID}`)
+console.log(`   Barometer GID: ${BAROMETER_GID}\n`)
 
 function parseCSV(csvText) {
   const lines = csvText.split('\n')
@@ -266,6 +272,127 @@ async function updateData() {
       }
     } else {
       console.log('\n⚠️  RDI GID not configured, skipping RDI data...')
+    }
+    
+    // Load barometer data (different sheet)
+    let barometerData = []
+    try {
+      console.log(`\n📥 Loading barometer data...`)
+      const barometerUrl = `https://docs.google.com/spreadsheets/d/${BAROMETER_SHEET_ID}/export?format=csv&gid=${BAROMETER_GID}`
+      console.log(`   🔗 Fetch URL: ${barometerUrl}`)
+      
+      const barometerResponse = await fetch(barometerUrl)
+      console.log(`   📊 HTTP Status: ${barometerResponse.status} ${barometerResponse.statusText}`)
+      
+      if (!barometerResponse.ok) {
+        console.error(`   ❌ HTTP Error: ${barometerResponse.status} ${barometerResponse.statusText}`)
+        console.error(`   💡 Possible causes:`)
+        console.error(`      - Sheet ID or GID is incorrect`)
+        console.error(`      - Sheet is not publicly accessible`)
+        console.error(`      - Network error`)
+        process.exit(1)
+      }
+      
+      const barometerCsvText = await barometerResponse.text()
+      
+      // Validate response is CSV, not HTML error page
+      if (!barometerCsvText || barometerCsvText.trim().length === 0) {
+        console.error(`   ❌ Error: Barometer sheet response is empty`)
+        console.error(`   💡 Possible causes:`)
+        console.error(`      - Sheet is empty`)
+        console.error(`      - GID points to an empty tab`)
+        console.error(`      - Sheet access denied`)
+        if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+          console.error(`   📄 Response preview (first 200 chars): ${barometerCsvText.substring(0, 200)}`)
+        }
+        process.exit(1)
+      }
+      
+      // Check for HTML error pages
+      if (barometerCsvText.trim().startsWith('<!DOCTYPE') || 
+          barometerCsvText.includes('<html') || 
+          barometerCsvText.includes('accounts.google.com')) {
+        console.error(`   ❌ Error: Received HTML page instead of CSV`)
+        console.error(`   💡 This means the sheet is not publicly accessible`)
+        console.error(`   📝 To fix:`)
+        console.error(`      1. Open the Google Sheet`)
+        console.error(`      2. Click "Share" button`)
+        console.error(`      3. Set access to "Anyone with the link can view"`)
+        console.error(`      4. Verify Sheet ID: ${BAROMETER_SHEET_ID}`)
+        console.error(`      5. Verify GID: ${BAROMETER_GID}`)
+        if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+          console.error(`   📄 Response preview (first 200 chars): ${barometerCsvText.substring(0, 200)}`)
+        }
+        process.exit(1)
+      }
+      
+      const barometerCsvData = parseCSV(barometerCsvText)
+      
+      if (barometerCsvData.length === 0) {
+        console.error(`   ❌ Error: Parsed CSV contains no rows`)
+        console.error(`   💡 Possible causes:`)
+        console.error(`      - Sheet is completely empty`)
+        console.error(`      - GID points to wrong tab`)
+        console.error(`      - CSV parsing failed`)
+        if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+          console.error(`   📄 Response preview (first 200 chars): ${barometerCsvText.substring(0, 200)}`)
+        }
+        process.exit(1)
+      }
+      
+      const headers = (barometerCsvData[0] || []).map(h => String(h || '').trim())
+      console.log(`   📋 Columns found (${headers.length}):`, headers.join(', '))
+      
+      for (let i = 1; i < barometerCsvData.length; i++) {
+        const row = barometerCsvData[i]
+        if (row && row.length > 0) {
+          const rowData = {}
+          headers.forEach((header, index) => {
+            if (row[index] !== undefined && row[index] !== null && row[index] !== '') {
+              const value = row[index]
+              if (typeof value === 'number') {
+                rowData[header] = value
+              } else {
+                const numValue = parseFloat(String(value).replace(/[,\s€$]/g, ''))
+                rowData[header] = isNaN(numValue) ? String(value) : numValue
+              }
+            }
+          })
+          if (Object.keys(rowData).length > 0) {
+            barometerData.push(rowData)
+          }
+        }
+      }
+      
+      // Validate we have data rows
+      if (barometerData.length === 0) {
+        console.error(`   ❌ Error: No valid data rows parsed (parsed ${barometerCsvData.length - 1} CSV rows, but all were empty/invalid)`)
+        console.error(`   💡 Possible causes:`)
+        console.error(`      - All rows in the sheet are empty`)
+        console.error(`      - Data format is incorrect`)
+        console.error(`      - Headers don't match expected format`)
+        if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+          console.error(`   📄 Response preview (first 200 chars): ${barometerCsvText.substring(0, 200)}`)
+        }
+        process.exit(1)
+      }
+      
+      // Save barometer data
+      const barometerDataPath = path.join(dataDir, 'barometer-data.json')
+      fs.writeFileSync(barometerDataPath, JSON.stringify(barometerData, null, 2))
+      console.log(`   ✅ Success: Parsed ${barometerData.length} data rows`)
+      console.log(`   💾 Output file: ${barometerDataPath}`)
+      console.log(`   ✅ Barometer data saved successfully`)
+    } catch (error) {
+      console.error(`   ❌ Error loading barometer data:`, error.message)
+      console.error(`   💡 Troubleshooting:`)
+      console.error(`      - Verify BAROMETER_SHEET_ID and BAROMETER_GID in .env`)
+      console.error(`      - Ensure the sheet is publicly shared ("Anyone with the link can view")`)
+      console.error(`      - Check that the Sheet ID and GID are correct`)
+      if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+        console.error(`   📄 Error details:`, error)
+      }
+      process.exit(1)
     }
     
     console.log('\n✅ Data update complete!')

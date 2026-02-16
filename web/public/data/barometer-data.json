@@ -1,0 +1,137 @@
+[
+  {
+    "Time": "Q2/2022",
+    "Company financial situation Past 3mo": 46.3,
+    "Company financial situation Next 3mo": 48.9,
+    "Number of employees Past 3mo": 41.6,
+    "Number of employees Next 3mo": 46.3,
+    "Surrounding economy Past 3mo": 25.3,
+    "Surrounding economy Next 3mo": 22.1
+  },
+  {
+    "Time": "Q3/2022",
+    "Company financial situation Past 3mo": 42.3,
+    "Company financial situation Next 3mo": 46.9,
+    "Number of employees Past 3mo": 33.5,
+    "Number of employees Next 3mo": 30.9,
+    "Surrounding economy Past 3mo": -3.1,
+    "Surrounding economy Next 3mo": -8.8
+  },
+  {
+    "Time": "Q4/2022",
+    "Company financial situation Past 3mo": 20.1,
+    "Company financial situation Next 3mo": 27.1,
+    "Number of employees Past 3mo": 17.3,
+    "Number of employees Next 3mo": 27.1,
+    "Surrounding economy Past 3mo": -16.8,
+    "Surrounding economy Next 3mo": -15
+  },
+  {
+    "Time": "Q1/2023",
+    "Company financial situation Past 3mo": 14.2,
+    "Company financial situation Next 3mo": 29.9,
+    "Number of employees Past 3mo": 21.1,
+    "Number of employees Next 3mo": 27.9,
+    "Surrounding economy Past 3mo": -26.1,
+    "Surrounding economy Next 3mo": -20.7
+  },
+  {
+    "Time": "Q2/2023",
+    "Company financial situation Past 3mo": 20.6,
+    "Company financial situation Next 3mo": 32,
+    "Number of employees Past 3mo": 16.5,
+    "Number of employees Next 3mo": 26.3,
+    "Surrounding economy Past 3mo": -26.6,
+    "Surrounding economy Next 3mo": -14.2
+  },
+  {
+    "Time": "Q3/2023",
+    "Company financial situation Past 3mo": 22.2,
+    "Company financial situation Next 3mo": 33.3,
+    "Number of employees Past 3mo": 17.1,
+    "Number of employees Next 3mo": 24.5,
+    "Surrounding economy Past 3mo": -16.1,
+    "Surrounding economy Next 3mo": -8.1
+  },
+  {
+    "Time": "Q4/2023",
+    "Company financial situation Past 3mo": 18.3,
+    "Company financial situation Next 3mo": 31.2,
+    "Number of employees Past 3mo": 17.4,
+    "Number of employees Next 3mo": 23.4,
+    "Surrounding economy Past 3mo": -19.9,
+    "Surrounding economy Next 3mo": -7.6
+  },
+  {
+    "Time": "Q1/2024",
+    "Company financial situation Past 3mo": 25.4,
+    "Company financial situation Next 3mo": 32.3,
+    "Number of employees Past 3mo": 22.8,
+    "Number of employees Next 3mo": 26.3,
+    "Surrounding economy Past 3mo": -15.3,
+    "Surrounding economy Next 3mo": -4.8
+  },
+  {
+    "Time": "Q2/2024",
+    "Company financial situation Past 3mo": 24.7,
+    "Company financial situation Next 3mo": 33.8,
+    "Number of employees Past 3mo": 19.2,
+    "Number of employees Next 3mo": 23.2,
+    "Surrounding economy Past 3mo": -12.1,
+    "Surrounding economy Next 3mo": 3.7
+  },
+  {
+    "Time": "Q3/2024",
+    "Company financial situation Past 3mo": 19.7,
+    "Company financial situation Next 3mo": 32.6,
+    "Number of employees Past 3mo": 11,
+    "Number of employees Next 3mo": 25.2,
+    "Surrounding economy Past 3mo": -13.8,
+    "Surrounding economy Next 3mo": 2.2
+  },
+  {
+    "Time": "Q4/2024",
+    "Company financial situation Past 3mo": 27.3,
+    "Company financial situation Next 3mo": 29.6,
+    "Number of employees Past 3mo": 17.1,
+    "Number of employees Next 3mo": 24.5,
+    "Surrounding economy Past 3mo": -14.8,
+    "Surrounding economy Next 3mo": 0.4
+  },
+  {
+    "Time": "Q1/2025",
+    "Company financial situation Past 3mo": 24.1,
+    "Company financial situation Next 3mo": 27.8,
+    "Number of employees Past 3mo": 19.3,
+    "Number of employees Next 3mo": 25.9,
+    "Surrounding economy Past 3mo": -14.5,
+    "Surrounding economy Next 3mo": -0.9
+  },
+  {
+    "Time": "Q2/2025",
+    "Company financial situation Past 3mo": 21.1,
+    "Company financial situation Next 3mo": 26.8,
+    "Number of employees Past 3mo": 18,
+    "Number of employees Next 3mo": 25.9,
+    "Surrounding economy Past 3mo": -14,
+    "Surrounding economy Next 3mo": -6.2
+  },
+  {
+    "Time": "Q3/2025",
+    "Company financial situation Past 3mo": 18.1,
+    "Company financial situation Next 3mo": 29.4,
+    "Number of employees Past 3mo": 14.3,
+    "Number of employees Next 3mo": 26.1,
+    "Surrounding economy Past 3mo": -8.8,
+    "Surrounding economy Next 3mo": 3.8
+  },
+  {
+    "Time": "Q4/2025",
+    "Company financial situation Past 3mo": 11.6,
+    "Company financial situation Next 3mo": 25.9,
+    "Number of employees Past 3mo": 12.5,
+    "Number of employees Next 3mo": 26.4,
+    "Surrounding economy Past 3mo": -14.8,
+    "Surrounding economy Next 3mo": 1.4
+  }
+]
