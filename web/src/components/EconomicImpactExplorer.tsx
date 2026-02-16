@@ -186,12 +186,7 @@ const EconomicImpactExplorer = ({
     <div className={styles.economicImpactExplorer}>
       {/* Helper text */}
       <p className={styles.helperText}>
-        <span className={styles.helperTextDesktop}>
-          Use the tabs to explore revenue, employment, firms and R&D over time.
-        </span>
-        <span className={styles.helperTextMobile}>
-          Switch metrics below.
-        </span>
+        Switch metrics below.
       </p>
 
       {/* Tab Navigation */}

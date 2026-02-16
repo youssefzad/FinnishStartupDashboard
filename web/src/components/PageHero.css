@@ -30,32 +30,96 @@ body.use-fsc-header-hero .page-hero {
     rgba(165, 128, 242, 0.1) 100%
   );
   background-size: 200% 200%;
-  animation: gradientShift 15s ease infinite;
+  animation: gradientDrift 40s linear infinite;
   pointer-events: none;
+  overflow: hidden;
 }
 
-/* Subtle dark overlay for text readability (FSC style) */
-body.use-fsc-header-hero .page-hero-bg-animation::after {
+/* Soft glow blobs using pseudo-elements */
+.page-hero-bg-animation::before {
+  content: '';
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(165, 128, 242, 0.4) 0%, transparent 70%);
+  top: -100px;
+  left: 10%;
+  filter: blur(55px);
+  opacity: 0.3;
+  pointer-events: none;
+  animation: blobFloat1 50s ease-in-out infinite;
+  z-index: 1;
+}
+
+/* Second glow blob - blue-purple */
+.page-hero-bg-animation::after {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+  bottom: -80px;
+  right: 15%;
+  filter: blur(55px);
+  opacity: 0.28;
+  pointer-events: none;
+  animation: blobFloat2 60s ease-in-out infinite;
+  z-index: 1;
+}
+
+/* Subtle dark overlay for text readability (FSC style) - separate layer */
+body.use-fsc-header-hero .page-hero::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.18);
   z-index: 1;
   pointer-events: none;
 }
 
-@keyframes gradientShift {
+/* Slow gradient drift animation - increased movement range for visibility */
+@keyframes gradientDrift {
   0% {
     background-position: 0% 50%;
   }
   50% {
-    background-position: 100% 50%;
+    background-position: 150% 50%;
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+/* Floating blob animations using transform for performance */
+@keyframes blobFloat1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30px, -40px) scale(1.1);
+  }
+  50% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  75% {
+    transform: translate(40px, 30px) scale(1.05);
+  }
+}
+
+@keyframes blobFloat2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-35px, 25px) scale(1.15);
+  }
+  66% {
+    transform: translate(25px, -30px) scale(0.85);
   }
 }
 
@@ -86,6 +150,19 @@ body.use-fsc-header-hero .page-hero-bg-animation::after {
   letter-spacing: -0.03em;
   color: var(--text-primary);
   margin: 0 0 1.5rem 0;
+  animation: heroFadeScale 0.8s ease-out;
+  animation-fill-mode: both;
+}
+
+@keyframes heroFadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .page-hero-subtitle {
@@ -96,6 +173,30 @@ body.use-fsc-header-hero .page-hero-bg-animation::after {
   color: var(--text-secondary);
   margin: 0;
   max-width: 900px;
+  animation: heroFadeScale 1s ease-out 0.15s;
+  animation-fill-mode: both;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .page-hero-title,
+  .page-hero-subtitle {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Disable background animations for reduced motion */
+  .page-hero-bg-animation {
+    animation: none;
+    background-position: 0% 50%;
+  }
+
+  .page-hero-bg-animation::before,
+  .page-hero-bg-animation::after {
+    animation: none;
+    transform: none;
+  }
 }
 
 /* Mobile adjustments */
@@ -120,6 +221,16 @@ body.use-fsc-header-hero .page-hero-bg-animation::after {
     min-height: var(--fsc-hero-min-height-mobile);
     padding-top: var(--fsc-hero-padding-top-mobile);
     padding-bottom: var(--fsc-hero-padding-bottom-mobile);
+  }
+
+  /* Mobile: Faster animations (25% reduction) */
+  .page-hero-title {
+    animation-duration: 0.6s;
+  }
+
+  .page-hero-subtitle {
+    animation-duration: 0.75s;
+    animation-delay: 0.1s;
   }
 }
 

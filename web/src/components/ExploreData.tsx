@@ -3101,7 +3101,7 @@ const ExploreData = () => {
             {(genderComparisonData.length > 0 || immigrationComparisonData.length > 0) && (
               <div className="charts-section charts-section-employees">
                 <div className="section-header">
-                  <h2 className="section-title">Employees of Finnish Startups</h2>
+                    <h2 className="section-title">Employee characteristics</h2>
                 </div>
                 <p className="section-description">Discover the composition of employees in startup-based firms in Finland</p>
                 
@@ -3800,7 +3800,7 @@ const ExploreData = () => {
                 <div className="section-header">
                   <h2 className="section-title">Startup Barometer</h2>
                 </div>
-                <p className="section-description">Startup Barometer is a quarterly survey sent to Finnish Startup Community members</p>
+                <p className="section-description">Startup Barometer measures the sentiment of Finnish Startup Community members.</p>
                 
                 <BarometerExplorer 
                   barometerData={barometerData}

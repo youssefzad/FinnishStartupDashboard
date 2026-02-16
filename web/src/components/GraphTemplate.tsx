@@ -1,5 +1,5 @@
 import React from 'react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 
 // Type definitions for graph configuration
 export interface FilterOption {
@@ -19,6 +19,7 @@ export interface YAxisConfig {
   formatter: (value: number) => string
   width?: number // Optional width constraint for mobile
   domain?: [number, number] // Optional fixed domain [min, max] for Y-axis
+  label?: string // Optional Y-axis label text
 }
 
 export interface TooltipConfig {
@@ -53,6 +54,7 @@ export interface GraphTemplateConfig {
   
   // Title and labels
   title: string
+  titleNote?: string // Optional explanatory note below title (subtle, low-contrast)
   dataLabel: string // Label for tooltip/legend (used for single series or as fallback)
   
   // Multi-series support (optional - if provided, renders multiple series)
@@ -108,6 +110,7 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
   const {
     data,
     title,
+    titleNote,
     dataLabel,
     series,
     filtersConfig,
@@ -222,6 +225,9 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
     <div className="chart-card chart-card-filterable chart-card-with-text" style={{ gridColumn: '1 / -1' }}>
       <div className="chart-header">
         <h3 className="chart-card-title">{title}</h3>
+        {titleNote && (
+          <p className="chart-title-note">{titleNote}</p>
+        )}
       </div>
       <div className="chart-content-wrapper">
         <div className="chart-column">
@@ -253,6 +259,16 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                   )}
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                {/* Enhanced 0 line for barometer charts (when domain includes 0) */}
+                {yAxisConfig.domain && yAxisConfig.domain[0] <= 0 && yAxisConfig.domain[1] >= 0 && (
+                  <ReferenceLine 
+                    y={0} 
+                    stroke={chartColors.axis || '#888'} 
+                    strokeWidth={1.5}
+                    strokeOpacity={0.6}
+                    strokeDasharray="0"
+                  />
+                )}
                 <XAxis 
                   dataKey="name" 
                   stroke={chartColors.axis}
@@ -268,6 +284,17 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                   width={windowWidth <= 640 ? (yAxisConfig.width || 35) : undefined}
                   tickFormatter={yAxisConfig.formatter}
                   domain={yAxisConfig.domain}
+                  label={yAxisConfig.label ? {
+                    value: yAxisConfig.label,
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { 
+                      textAnchor: 'middle',
+                      fill: chartColors.tick,
+                      fontSize: windowWidth <= 640 ? 10 : 11,
+                      opacity: 0.7
+                    }
+                  } : undefined}
                 />
                 <Tooltip 
                   contentStyle={{ 

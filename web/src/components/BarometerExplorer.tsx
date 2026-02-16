@@ -138,6 +138,18 @@ const BarometerExplorer = ({
     const { past, next } = getTabColumns(selectedTab)
     if (!past && !next) return null
     
+    // Parse quarter/year string (e.g., "Q2/2022") to a sortable value
+    const parseQuarterYear = (timeStr: string): { year: number; quarter: number } | null => {
+      const match = String(timeStr).match(/Q(\d)\/(\d{4})/)
+      if (match) {
+        return {
+          quarter: parseInt(match[1], 10),
+          year: parseInt(match[2], 10)
+        }
+      }
+      return null
+    }
+
     // Prepare chart data
     const chartData = barometerData
       .filter(row => row[timeCol] !== undefined && row[timeCol] !== null)
@@ -160,12 +172,19 @@ const BarometerExplorer = ({
       })
       .filter(row => row.past !== null || row.next !== null)
       .sort((a, b) => {
-        const timeA = parseInt(a.name) || a.name
-        const timeB = parseInt(b.name) || b.name
-        if (typeof timeA === 'number' && typeof timeB === 'number') {
-          return timeA - timeB
+        const parsedA = parseQuarterYear(a.name)
+        const parsedB = parseQuarterYear(b.name)
+        
+        // If both can be parsed as quarter/year, sort chronologically
+        if (parsedA && parsedB) {
+          if (parsedA.year !== parsedB.year) {
+            return parsedA.year - parsedB.year
+          }
+          return parsedA.quarter - parsedB.quarter
         }
-        return String(timeA).localeCompare(String(timeB))
+        
+        // Fallback to string comparison if parsing fails
+        return String(a.name).localeCompare(String(b.name))
       })
 
     if (chartData.length === 0) return null
@@ -212,11 +231,13 @@ const BarometerExplorer = ({
     return {
       data: chartData,
       title: getTabTitle(selectedTab),
+      titleNote: 'Balance = % positive responses − % negative responses',
       dataLabel: 'Sentiment',
       series: series,
       yAxisConfig: {
         formatter: (value: number) => value.toFixed(1),
-        domain: [-50, 50] // Fixed scale from -50 to +50
+        domain: [-50, 50], // Fixed scale from -50 to +50
+        label: 'Balance index (-100 to +100)'
       },
       tooltipConfig: {
         formatter: (value: number) => [value.toFixed(1), 'Sentiment']
