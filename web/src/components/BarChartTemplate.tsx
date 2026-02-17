@@ -98,6 +98,12 @@ export interface BarChartTemplateConfig {
   // X-axis interval function
   getXAxisInterval: () => number
   
+  // Debug info (optional, for development)
+  _debug?: {
+    filter?: string
+    columnUsed?: string
+  }
+  
   // Data table rendering
   isRevenueValue?: boolean
   renderTable?: () => React.ReactNode
@@ -108,12 +114,12 @@ export interface BarChartTemplateConfig {
 interface BarChartTemplateProps {
   config: BarChartTemplateConfig
   filterValue?: string
-  onFilterChange?: (value: string) => void
+  onFilterChange?: (value: string) => void // Reserved for future use
   chartId?: ChartId // Optional: for embed functionality
   embedMode?: boolean // Optional: if true, use single-column layout and hide insight panel
 }
 
-const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue = '', onFilterChange, chartId, embedMode = false }) => {
+const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue = '', chartId, embedMode = false }) => {
   const [showEmbedModal, setShowEmbedModal] = useState(false)
   const {
     data,

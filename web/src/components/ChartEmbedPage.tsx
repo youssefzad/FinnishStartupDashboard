@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext'
 import ChartById from './ChartById'
-import { isValidChartId, getAllChartIds, chartRegistry } from '../config/chartRegistry'
+import { isValidChartId, getAllChartIds, chartRegistry, type ChartId } from '../config/chartRegistry'
 import './ChartEmbedPage.css'
 
 function ChartEmbedContent() {
@@ -10,7 +10,7 @@ function ChartEmbedContent() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
-  const { theme: contextTheme, toggleTheme } = useTheme()
+  const { theme: contextTheme } = useTheme()
   const [debugInfo, setDebugInfo] = useState<{ chartId: string; filter: string; columnUsed: string } | null>(null)
   const showDebug = searchParams.get('fscDebug') === '1'
 

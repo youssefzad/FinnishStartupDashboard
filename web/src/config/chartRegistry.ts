@@ -1,8 +1,8 @@
 import type { GraphTemplateConfig } from '../components/GraphTemplate'
 import type { BarChartTemplateConfig } from '../components/BarChartTemplate'
-import { buildRevenueConfig, buildEmployeesConfig, buildFirmsConfig, buildRdiConfig, type BuildConfigParams as EconomicParams } from '../charts/buildEconomicImpactConfigs'
-import { buildGenderConfig, buildImmigrationConfig, type BuildConfigParams as WorkforceParams } from '../charts/buildWorkforceConfigs'
-import { buildBarometerConfig, type BuildConfigParams as BarometerParams } from '../charts/buildBarometerConfigs'
+import { buildRevenueConfig, buildEmployeesConfig, buildFirmsConfig, buildRdiConfig, type EconomicImpactConfigParams } from '../charts/buildEconomicImpactConfigs'
+import { buildGenderConfig, buildImmigrationConfig } from '../charts/buildWorkforceConfigs'
+import { buildBarometerConfig } from '../charts/buildBarometerConfigs'
 
 export type ChartId = 
   | 'economic-impact-revenue'
@@ -24,7 +24,7 @@ export interface ChartRegistryEntry {
 }
 
 // Helper to get chart colors based on theme
-function getChartColors(theme: 'light' | 'dark'): EconomicParams['chartColors'] {
+function getChartColors(theme: 'light' | 'dark'): EconomicImpactConfigParams['chartColors'] {
   if (theme === 'light') {
     return {
       grid: 'rgba(0, 0, 0, 0.1)',

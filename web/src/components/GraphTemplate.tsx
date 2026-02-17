@@ -97,6 +97,12 @@ export interface GraphTemplateConfig {
   // X-axis interval function
   getXAxisInterval: () => number
   
+  // Debug info (optional, for development)
+  _debug?: {
+    filter?: string
+    columnUsed?: string
+  }
+  
   // Data table rendering
   isRevenueValue?: boolean // Whether to format table values as revenue
   renderTable?: () => React.ReactNode // Optional custom table renderer

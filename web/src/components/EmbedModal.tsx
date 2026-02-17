@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import type { ChartId } from '../config/chartRegistry'
-import { chartRegistry } from '../config/chartRegistry'
 import './EmbedModal.css'
 
 interface EmbedModalProps {
@@ -64,14 +63,6 @@ export default function EmbedModal({ chartId, currentFilter, currentView, onClos
 
   // Generate stable iframe ID
   const iframeId = `fsc-chart-${chartId}`
-  const chartTitle = chartRegistry[chartId]?.title || chartId
-
-  // Basic iframe snippet
-  const basicSnippet = `<iframe src="${embedUrl}"
-     style="width:100%;border:0;"
-     height="520"
-     loading="lazy"
-     title="Finnish Startup Community chart: ${chartId}"></iframe>`
 
   // Responsive iframe snippet with hardened postMessage listener
   const responsiveSnippet = `<iframe id="${iframeId}" src="${embedUrl}"
