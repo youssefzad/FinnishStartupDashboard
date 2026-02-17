@@ -4,11 +4,25 @@ interface PageHeroProps {
   title: string
   subtitle?: string
   className?: string
+  backgroundImage?: string // Optional: path to background image (e.g., '/images/hero-bg.jpg')
 }
 
-const PageHero = ({ title, subtitle, className = '' }: PageHeroProps) => {
+const PageHero = ({ title, subtitle, className = '', backgroundImage }: PageHeroProps) => {
   return (
-    <section className={`page-hero ${className}`}>
+    <section className={`page-hero ${className} ${backgroundImage ? 'has-bg-image' : ''}`}>
+      {/* Static background image layer */}
+      {backgroundImage && (
+        <div 
+          className="page-hero-bg-image"
+          style={{
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        ></div>
+      )}
+      
       {/* Animated background gradient */}
       <div className="page-hero-bg-animation"></div>
       

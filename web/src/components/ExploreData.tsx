@@ -2808,6 +2808,7 @@ const ExploreData = () => {
         <PageHero 
           title="Explore Startup Data"
           subtitle="Dive deep into the Finnish startup ecosystem statistics"
+          backgroundImage="/images/hero-bg.jpg" // Update this path to match your uploaded image filename
         />
       ) : (
       <header className="explore-header">
