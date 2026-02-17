@@ -683,12 +683,6 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
   height: 16px;
 }
 
-/* Hide embed button on mobile devices */
-@media (max-width: 768px) {
-  .embed-button-desktop-only {
-    display: none !important;
-  }
-}
 
 .chart-table-wrapper {
   order: 0;

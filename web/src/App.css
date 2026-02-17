@@ -101,3 +101,10 @@ body {
   font-size: 0.875rem;
 }
 
+/* Hide embed button on mobile devices */
+@media (max-width: 768px) {
+  .embed-button-desktop-only {
+    display: none !important;
+  }
+}
+
