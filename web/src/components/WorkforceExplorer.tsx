@@ -154,13 +154,17 @@ const WorkforceExplorer = ({
 
   return (
     <div className={styles.workforceExplorer}>
-      {/* Helper text */}
-      <p className={styles.helperText}>
-        Switch metrics below.
+      {/* Helper text - Mobile: centered above tabs */}
+      <p className={`${styles.helperText} ${styles.helperTextMobile}`}>
+        Metrics
       </p>
 
-      {/* Tab Navigation */}
-      <div className={styles.tabs}>
+      {/* Tab Navigation Container - Desktop: inline with "Metrics:" */}
+      <div className={styles.tabsContainer}>
+        <span className={`${styles.helperText} ${styles.helperTextDesktop}`}>
+          Metrics:
+        </span>
+        <div className={styles.tabs}>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -170,6 +174,7 @@ const WorkforceExplorer = ({
             {tab.label}
           </button>
         ))}
+        </div>
       </div>
 
       {/* Chart Content */}

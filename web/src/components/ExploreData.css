@@ -199,7 +199,7 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
   font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
   font-size: 2rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-secondary) !important;
   margin: 0;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -235,6 +235,7 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
     font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
     font-size: 1.5rem;
     font-weight: 600;
+    color: var(--text-secondary) !important;
     line-height: 1.3;
     margin: 0;
   }

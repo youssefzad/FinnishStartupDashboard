@@ -5,38 +5,56 @@
 .helperText {
   color: var(--text-secondary, #666);
   font-size: 0.9375rem;
-  margin-bottom: 1rem;
   line-height: 1.5;
 }
 
-/* Desktop: Tighter spacing between title, helper text, tabs, and chart */
-@media (min-width: 769px) {
-  .helperText {
-    margin-top: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-}
-
 .helperTextDesktop {
-  display: block;
-}
-
-.helperTextMobile {
   display: none;
 }
 
-.tabs {
+.helperTextMobile {
+  display: block;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.tabsContainer {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
   border-bottom: 2px solid var(--border-color, #e0e0e0);
   padding-bottom: 0.5rem;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+/* Desktop: Inline "Metrics:" with tabs */
+@media (min-width: 769px) {
+  .helperTextDesktop {
+    display: inline;
+    margin: 0;
+  }
+
+  .helperTextMobile {
+    display: none;
+  }
+
+  .tabsContainer {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
+}
+
 /* Desktop: Tighter spacing between tabs and chart */
 @media (min-width: 769px) {
   .tabs {
-    margin-bottom: 1rem;
+    margin-bottom: 0;
   }
 }
 
@@ -73,24 +91,17 @@
 
 /* Mobile: Use grid layout for 2x2 tabs (≤768px) */
 @media (max-width: 768px) {
-  .helperText {
-    margin-bottom: 0.5rem;
-  }
-
-  .helperTextDesktop {
-    display: none;
-  }
-
-  .helperTextMobile {
+  .tabsContainer {
     display: block;
+    margin-top: 0;
+    margin-bottom: 1rem;
   }
 
   .tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
-    margin-bottom: 1rem;
-    margin-top: 0.25rem;
+    margin-top: 0;
     border-bottom: 2px solid var(--border-color, #e0e0e0);
     padding-bottom: 0.5rem;
     overflow-x: visible;
