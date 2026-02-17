@@ -397,6 +397,8 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
   z-index: 1;
 }
 
+/* Note: Embed mode CSS rules moved to App.css for global availability */
+
 @media (max-width: 640px) {
   .chart-content-wrapper {
     grid-template-columns: 1fr;
@@ -679,6 +681,13 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
 .action-button svg {
   width: 16px;
   height: 16px;
+}
+
+/* Hide embed button on mobile devices */
+@media (max-width: 768px) {
+  .embed-button-desktop-only {
+    display: none !important;
+  }
 }
 
 .chart-table-wrapper {

@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import EmbedModal from './EmbedModal'
+import type { ChartId } from '../config/chartRegistry'
 
 // Type definitions for bar chart configuration
 export interface BarSeries {
@@ -105,9 +107,14 @@ export interface BarChartTemplateConfig {
 
 interface BarChartTemplateProps {
   config: BarChartTemplateConfig
+  filterValue?: string
+  onFilterChange?: (value: string) => void
+  chartId?: ChartId // Optional: for embed functionality
+  embedMode?: boolean // Optional: if true, use single-column layout and hide insight panel
 }
 
-const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config }) => {
+const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue = '', onFilterChange, chartId, embedMode = false }) => {
+  const [showEmbedModal, setShowEmbedModal] = useState(false)
   const {
     data,
     title,
@@ -179,12 +186,36 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config }) => {
   }
 
   return (
-    <div className="chart-card chart-card-with-text" style={{ marginBottom: '2rem', gridColumn: '1 / -1' }}>
-      <div className="chart-header">
-        <h3 className="chart-card-title">{title}</h3>
-      </div>
-      <div className="chart-content-wrapper">
+    <div className={`chart-card chart-card-with-text ${embedMode ? 'embed' : ''}`} style={{ marginBottom: '2rem', gridColumn: '1 / -1' }}>
+      {!embedMode && (
+        <div className="chart-header">
+          <h3 className="chart-card-title">{title}</h3>
+        </div>
+      )}
+      <div className={`chart-content-wrapper ${embedMode ? 'embed' : ''}`}>
         <div className="chart-column">
+          {embedMode && filtersConfig?.enabled && (
+            <div className="chart-filters-embed">
+              {filtersConfig.toggleButtons?.map((button, index) => (
+                <button
+                  key={index}
+                  className={`filter-button ${button.isActive ? 'active' : ''}`}
+                  onClick={button.onClick}
+                >
+                  <span className="filter-label">{button.label}</span>
+                </button>
+              ))}
+              {filtersConfig.viewModeButtons?.map((button, index) => (
+                <button
+                  key={index}
+                  className={`filter-button ${button.isActive ? 'active' : ''}`}
+                  onClick={button.onClick}
+                >
+                  <span className="filter-label">{button.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="chart-wrapper chart-wrapper-grid">
             <ResponsiveContainer width="100%" height={400}>
               {chartType === 'area' && areaConfig ? (
@@ -309,9 +340,21 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config }) => {
                 </svg>
               </button>
             )}
+            {chartId && (
+              <button
+                className="action-button embed-button-desktop-only"
+                onClick={() => setShowEmbedModal(true)}
+                title="Embed this chart"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
-        {filtersConfig?.enabled && (
+        {!embedMode && filtersConfig?.enabled && (
           <div className="chart-sidebar">
             <div className="chart-filters">
               {filtersConfig.toggleButtons?.map((button, index) => (
@@ -340,7 +383,7 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config }) => {
             )}
           </div>
         )}
-        {!filtersConfig?.enabled && contextText && (
+        {!embedMode && !filtersConfig?.enabled && contextText && (
           <div className="chart-sidebar">
             <div className="chart-context-text">
               <p>{contextText}</p>
@@ -352,6 +395,14 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config }) => {
         <div className="chart-table-wrapper">
           {renderDataTableContent()}
         </div>
+      )}
+      {showEmbedModal && chartId && (
+        <EmbedModal
+          chartId={chartId}
+          currentFilter={filterValue}
+          currentView={filtersConfig?.viewModeButtons?.find(b => b.isActive)?.value}
+          onClose={() => setShowEmbedModal(false)}
+        />
       )}
     </div>
   )

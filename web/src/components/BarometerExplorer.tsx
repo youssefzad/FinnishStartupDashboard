@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTheme } from '../contexts/ThemeContext'
 import GraphTemplate from './GraphTemplate'
 import type { GraphTemplateConfig } from './GraphTemplate'
+import type { ChartId } from '../config/chartRegistry'
 import styles from './BarometerExplorer.module.css'
 
 interface BarometerExplorerProps {
@@ -309,6 +310,7 @@ const BarometerExplorer = ({
             config={buildBarometerConfig}
             filterValue="all"
             onFilterChange={() => {}}
+            chartId={`barometer-${selectedTab}` as ChartId}
           />
         ) : (
           <div style={{ padding: '3rem 2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>

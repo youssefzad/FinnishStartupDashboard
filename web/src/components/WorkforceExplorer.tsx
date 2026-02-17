@@ -124,6 +124,7 @@ const WorkforceExplorer = ({
           <BarChartTemplate
             key={`explorer-gender-${selectedTab}`} // Force remount on tab change
             config={configWithActions}
+            chartId="workforce-gender"
           />
         )
       }
@@ -142,6 +143,7 @@ const WorkforceExplorer = ({
           <BarChartTemplate
             key={`explorer-immigration-${selectedTab}`} // Force remount on tab change
             config={configWithActions}
+            chartId="workforce-immigration"
           />
         )
       }

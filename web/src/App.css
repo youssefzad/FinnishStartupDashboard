@@ -65,3 +65,39 @@ body {
   background-color: var(--bg-primary);
 }
 
+/* Embed mode CSS rules - must be global for embed pages */
+/* These styles ensure embedded charts use full width and single-column layout */
+
+.chart-content-wrapper.embed {
+  grid-template-columns: 1fr !important;
+  gap: 1rem;
+}
+
+.chart-content-wrapper.embed .chart-sidebar {
+  display: none !important;
+}
+
+.chart-card.embed .chart-column {
+  width: 100%;
+  max-width: none;
+}
+
+.chart-card.embed .chart-wrapper {
+  width: 100%;
+  max-width: none;
+}
+
+.chart-filters-embed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.chart-filters-embed .filter-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+

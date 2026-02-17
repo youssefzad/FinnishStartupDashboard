@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FSC Chart Embed Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+    
+    h1 {
+      margin-bottom: 2rem;
+      color: #1a1a1a;
+    }
+    
+    .chart-container {
+      margin-bottom: 3rem;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .chart-container h2 {
+      margin-bottom: 1rem;
+      color: #1a1a1a;
+      font-size: 1.25rem;
+    }
+    
+    .chart-container iframe {
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+    
+    .info {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>FSC Chart Embed Test Page</h1>
+  <p style="margin-bottom: 2rem; color: #666;">
+    This page tests responsive chart embeds with postMessage height updates.
+    Charts should automatically adjust their height based on content.
+  </p>
+
+  <div class="chart-container">
+    <h2>Revenue Chart (All)</h2>
+    <iframe id="fsc-chart-economic-impact-revenue" 
+            src="/embed/economic-impact-revenue?theme=light&showTitle=1&showSource=1"
+            style="width:100%;border:0;" 
+            height="520" 
+            loading="lazy"
+            title="Finnish Startup Community chart: economic-impact-revenue"></iframe>
+    <div class="info">Chart ID: economic-impact-revenue | Filter: all</div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Revenue Chart (Early Stage)</h2>
+    <iframe id="fsc-chart-economic-impact-revenue-early" 
+            src="/embed/economic-impact-revenue?filter=early-stage&theme=light&showTitle=1&showSource=1"
+            style="width:100%;border:0;" 
+            height="520" 
+            loading="lazy"
+            title="Finnish Startup Community chart: economic-impact-revenue"></iframe>
+    <div class="info">Chart ID: economic-impact-revenue | Filter: early-stage</div>
+  </div>
+
+  <div class="chart-container">
+    <h2>Gender Chart (Female Share)</h2>
+    <iframe id="fsc-chart-workforce-gender" 
+            src="/embed/workforce-gender?view=female-share&theme=light&showTitle=1&showSource=1"
+            style="width:100%;border:0;" 
+            height="520" 
+            loading="lazy"
+            title="Finnish Startup Community chart: workforce-gender"></iframe>
+    <div class="info">Chart ID: workforce-gender | View: female-share</div>
+  </div>
+
+  <script>
+    // Hardened postMessage listener for all charts
+    (function() {
+      var charts = [
+        'fsc-chart-economic-impact-revenue',
+        'fsc-chart-economic-impact-revenue-early',
+        'fsc-chart-workforce-gender'
+      ];
+      
+      var chartIds = {
+        'fsc-chart-economic-impact-revenue': 'economic-impact-revenue',
+        'fsc-chart-economic-impact-revenue-early': 'economic-impact-revenue',
+        'fsc-chart-workforce-gender': 'workforce-gender'
+      };
+      
+      var lastHeights = {};
+      charts.forEach(function(id) {
+        lastHeights[id] = 520;
+      });
+      
+      var rafIds = {};
+      
+      function setHeight(iframeId, height) {
+        if (rafIds[iframeId] !== null && rafIds[iframeId] !== undefined) {
+          cancelAnimationFrame(rafIds[iframeId]);
+        }
+        rafIds[iframeId] = requestAnimationFrame(function() {
+          var iframe = document.getElementById(iframeId);
+          if (iframe && height !== lastHeights[iframeId]) {
+            iframe.style.height = height + 'px';
+            lastHeights[iframeId] = height;
+          }
+        });
+      }
+      
+      window.addEventListener('message', function(event) {
+        // Validate message shape
+        if (!event.data || typeof event.data !== 'object') return;
+        if (event.data.type !== 'FSC_CHART_HEIGHT') return;
+        
+        var chartId = event.data.chartId;
+        if (!chartId || typeof chartId !== 'string') return;
+        
+        // Find matching iframe
+        var iframeId = null;
+        for (var id in chartIds) {
+          if (chartIds[id] === chartId) {
+            // For duplicate chartIds, match by iframe src
+            var iframe = document.getElementById(id);
+            if (iframe && iframe.src.includes('/embed/' + chartId)) {
+              iframeId = id;
+              break;
+            }
+          }
+        }
+        
+        if (!iframeId) return;
+        
+        // Validate height is a finite number
+        var height = event.data.height;
+        if (typeof height !== 'number' || !isFinite(height)) return;
+        
+        // Clamp height to sane range (200-3000px)
+        height = Math.max(200, Math.min(3000, Math.round(height)));
+        
+        setHeight(iframeId, height);
+      });
+    })();
+  </script>
+</body>
+</html>
+

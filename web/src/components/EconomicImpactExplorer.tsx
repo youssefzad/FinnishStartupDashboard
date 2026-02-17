@@ -135,6 +135,7 @@ const EconomicImpactExplorer = ({
             config={config}
             filterValue={revenueFilter}
             onFilterChange={(value) => setRevenueFilter(value as 'all' | 'early-stage' | 'later-stage')}
+            chartId="economic-impact-revenue"
           />
         )
       }
@@ -148,6 +149,7 @@ const EconomicImpactExplorer = ({
             config={config}
             filterValue={employeesFilter}
             onFilterChange={(value) => setEmployeesFilter(value as 'all' | 'finland')}
+            chartId="economic-impact-employees"
           />
         )
       }
@@ -161,6 +163,7 @@ const EconomicImpactExplorer = ({
             config={config}
             filterValue={firmsFilter}
             onFilterChange={(value) => setFirmsFilter(value as 'all' | 'finland' | 'early-stage' | 'later-stage')}
+            chartId="economic-impact-firms"
           />
         )
       }
@@ -174,6 +177,7 @@ const EconomicImpactExplorer = ({
             config={config}
             filterValue="all"
             onFilterChange={() => {}}
+            chartId="economic-impact-rdi"
           />
         )
       }

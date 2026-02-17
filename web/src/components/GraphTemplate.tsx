@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
+import EmbedModal from './EmbedModal'
+import type { ChartId } from '../config/chartRegistry'
 
 // Type definitions for graph configuration
 export interface FilterOption {
@@ -104,9 +106,12 @@ interface GraphTemplateProps {
   config: GraphTemplateConfig
   filterValue: string
   onFilterChange: (value: string) => void
+  chartId?: ChartId // Optional: for embed functionality
+  embedMode?: boolean // Optional: if true, use single-column layout and hide insight panel
 }
 
-const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFilterChange }) => {
+const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFilterChange, chartId, embedMode = false }) => {
+  const [showEmbedModal, setShowEmbedModal] = useState(false)
   const {
     data,
     title,
@@ -222,15 +227,35 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
   }
 
   return (
-    <div className="chart-card chart-card-filterable chart-card-with-text" style={{ gridColumn: '1 / -1' }}>
-      <div className="chart-header">
-        <h3 className="chart-card-title">{title}</h3>
-        {titleNote && (
+    <div className={`chart-card chart-card-filterable chart-card-with-text ${embedMode ? 'embed' : ''}`} style={{ gridColumn: '1 / -1' }}>
+      {!embedMode && (
+        <div className="chart-header">
+          <h3 className="chart-card-title">{title}</h3>
+          {titleNote && (
+            <p className="chart-title-note">{titleNote}</p>
+          )}
+        </div>
+      )}
+      {embedMode && titleNote && (
+        <div className="chart-header">
           <p className="chart-title-note">{titleNote}</p>
-        )}
-      </div>
-      <div className="chart-content-wrapper">
+        </div>
+      )}
+      <div className={`chart-content-wrapper ${embedMode ? 'embed' : ''}`}>
         <div className="chart-column">
+          {embedMode && filtersConfig?.enabled && (
+            <div className="chart-filters-embed">
+              {filtersConfig.options.map((option) => (
+                <button
+                  key={option.value}
+                  className={`filter-button ${filterValue === option.value ? 'active' : ''}`}
+                  onClick={() => onFilterChange(option.value)}
+                >
+                  <span className="filter-label">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="chart-wrapper chart-wrapper-grid">
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={data} margin={getMargins()}>
@@ -384,9 +409,21 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                 </svg>
               </button>
             )}
+            {chartId && (
+              <button
+                className="action-button embed-button-desktop-only"
+                onClick={() => setShowEmbedModal(true)}
+                title="Embed this chart"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
-        {filtersConfig?.enabled && (
+        {!embedMode && filtersConfig?.enabled && (
           <div className="chart-sidebar">
             <div className="chart-filters">
               {filtersConfig.options.map((option) => (
@@ -406,7 +443,7 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
             )}
           </div>
         )}
-        {!filtersConfig?.enabled && contextTextValue && (
+        {!embedMode && !filtersConfig?.enabled && contextTextValue && (
           <div className="chart-sidebar">
             <div className="chart-context-text">
               <p>{contextTextValue}</p>
@@ -418,6 +455,13 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
         <div className="chart-table-wrapper">
           {renderDataTableContent()}
         </div>
+      )}
+      {showEmbedModal && chartId && (
+        <EmbedModal
+          chartId={chartId}
+          currentFilter={filterValue !== 'all' ? filterValue : undefined}
+          onClose={() => setShowEmbedModal(false)}
+        />
       )}
     </div>
   )
