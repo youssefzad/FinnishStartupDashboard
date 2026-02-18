@@ -415,13 +415,24 @@ const ExploreData = () => {
   const getImmigrationComparisonData = () => {
     if (employeesGenderData.length === 0) return []
     
-    const finnishCol = Object.keys(employeesGenderData[0] || {}).find(key => {
+    // Check all rows for columns since immigration data may not exist in early years (2005-2009)
+    const getAllColumnNames = () => {
+      const columnSet = new Set<string>()
+      employeesGenderData.forEach(row => {
+        Object.keys(row).forEach(key => columnSet.add(key))
+      })
+      return Array.from(columnSet)
+    }
+    
+    const allColumns = getAllColumnNames()
+    
+    const finnishCol = allColumns.find(key => {
       const keyLower = key.toLowerCase()
       return (keyLower.includes('finnish') && keyLower.includes('background')) ||
              keyLower === 'finnish background'
     })
     
-    const foreignCol = Object.keys(employeesGenderData[0] || {}).find(key => {
+    const foreignCol = allColumns.find(key => {
       const keyLower = key.toLowerCase()
       return (keyLower.includes('foreign') && keyLower.includes('background')) ||
              keyLower === 'foreign background'
@@ -470,7 +481,18 @@ const ExploreData = () => {
   const getShareOfFinnishData = () => {
     if (employeesGenderData.length === 0) return []
     
-    const shareOfFinnishCol = Object.keys(employeesGenderData[0] || {}).find(key => {
+    // Check all rows for columns since share data may not exist in early years (2005-2009)
+    const getAllColumnNames = () => {
+      const columnSet = new Set<string>()
+      employeesGenderData.forEach(row => {
+        Object.keys(row).forEach(key => columnSet.add(key))
+      })
+      return Array.from(columnSet)
+    }
+    
+    const allColumns = getAllColumnNames()
+    
+    const shareOfFinnishCol = allColumns.find(key => {
       const keyLower = key.toLowerCase().trim()
       return keyLower === 'share of finnish' || 
              (keyLower.includes('share') && keyLower.includes('finnish') && !keyLower.includes('foreign'))
@@ -478,7 +500,7 @@ const ExploreData = () => {
     
     if (!shareOfFinnishCol) return []
     
-    const yearKey = Object.keys(employeesGenderData[0] || {}).find(key => {
+    const yearKey = allColumns.find(key => {
       const keyLower = key.toLowerCase()
       return keyLower.includes('year') || 
              keyLower.includes('period') ||
@@ -517,7 +539,18 @@ const ExploreData = () => {
   const getShareOfForeignData = () => {
     if (employeesGenderData.length === 0) return []
     
-    const shareOfForeignCol = Object.keys(employeesGenderData[0] || {}).find(key => {
+    // Check all rows for columns since share data may not exist in early years (2005-2009)
+    const getAllColumnNames = () => {
+      const columnSet = new Set<string>()
+      employeesGenderData.forEach(row => {
+        Object.keys(row).forEach(key => columnSet.add(key))
+      })
+      return Array.from(columnSet)
+    }
+    
+    const allColumns = getAllColumnNames()
+    
+    const shareOfForeignCol = allColumns.find(key => {
       const keyLower = key.toLowerCase().trim()
       return keyLower === 'share of foreign' || 
              (keyLower.includes('share') && keyLower.includes('foreign') && !keyLower.includes('finnish'))
@@ -525,7 +558,7 @@ const ExploreData = () => {
     
     if (!shareOfForeignCol) return []
     
-    const yearKey = Object.keys(employeesGenderData[0] || {}).find(key => {
+    const yearKey = allColumns.find(key => {
       const keyLower = key.toLowerCase()
       return keyLower.includes('year') || 
              keyLower.includes('period') ||

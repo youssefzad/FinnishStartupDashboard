@@ -54,7 +54,8 @@ export default function EmbedModal({ chartId, currentFilter, currentView, onClos
   if (currentView && currentView !== 'none') {
     queryParams.set('view', currentView)
   }
-  queryParams.set('theme', 'system')
+  // Don't include theme param - embeds default to dark mode
+  // Users can add ?theme=light or ?theme=system if they want to override
   queryParams.set('showTitle', '1')
   queryParams.set('showSource', '1')
   

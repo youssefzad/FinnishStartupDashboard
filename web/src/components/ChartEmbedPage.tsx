@@ -14,20 +14,19 @@ function ChartEmbedContent() {
   const [debugInfo, setDebugInfo] = useState<{ chartId: string; filter: string; columnUsed: string } | null>(null)
   const showDebug = searchParams.get('fscDebug') === '1'
 
-  // Get theme from URL param or use context
+  // Get theme from URL param or default to dark for embeds
   const themeParam = searchParams.get('theme')
   const effectiveTheme = themeParam === 'light' || themeParam === 'dark' 
     ? themeParam 
     : themeParam === 'system'
     ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-    : contextTheme
+    : 'dark' // Default to dark for embeds when no theme param is provided
 
   // Apply theme temporarily for embed (don't persist)
   useEffect(() => {
-    if (themeParam && themeParam !== 'system') {
-      document.documentElement.setAttribute('data-theme', themeParam)
-    }
-  }, [themeParam])
+    // Always apply the effective theme to the document for embeds
+    document.documentElement.setAttribute('data-theme', effectiveTheme)
+  }, [effectiveTheme])
 
   // PostMessage height updates to parent with throttling
   useEffect(() => {
@@ -204,7 +203,8 @@ function ChartEmbedContent() {
   if (searchParams.get('showFemaleBar') !== null) params.showFemaleBar = searchParams.get('showFemaleBar') || 'true'
   if (searchParams.get('showFinnishBar') !== null) params.showFinnishBar = searchParams.get('showFinnishBar') || 'true'
   if (searchParams.get('showForeignBar') !== null) params.showForeignBar = searchParams.get('showForeignBar') || 'true'
-  if (themeParam) params.theme = effectiveTheme
+  // Always pass theme to ChartById (defaults to 'dark' if no param)
+  params.theme = effectiveTheme
 
   const showTitle = searchParams.get('showTitle') !== '0' // Default true if param missing
   const showSource = searchParams.get('showSource') !== '0'

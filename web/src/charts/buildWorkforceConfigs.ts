@@ -82,13 +82,24 @@ function processImmigrationData(data: any[]): Array<{ name: string; Finnish: num
   
   const yearKey = findYearColumn(data)
   
-  const finnishCol = Object.keys(data[0] || {}).find(key => {
+  // Check all rows for columns since immigration data may not exist in early years (2005-2009)
+  const getAllColumnNames = () => {
+    const columnSet = new Set<string>()
+    data.forEach(row => {
+      Object.keys(row).forEach(key => columnSet.add(key))
+    })
+    return Array.from(columnSet)
+  }
+  
+  const allColumns = getAllColumnNames()
+  
+  const finnishCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
     return (keyLower.includes('finnish') && keyLower.includes('background')) ||
            keyLower === 'finnish background'
   })
   
-  const foreignCol = Object.keys(data[0] || {}).find(key => {
+  const foreignCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
     return (keyLower.includes('foreign') && keyLower.includes('background')) ||
            keyLower === 'foreign background'
@@ -97,14 +108,21 @@ function processImmigrationData(data: any[]): Array<{ name: string; Finnish: num
   if (!finnishCol || !foreignCol) return []
   
   return data
-    .filter(row => 
-      row[finnishCol] !== undefined && typeof row[finnishCol] === 'number' &&
-      row[foreignCol] !== undefined && typeof row[foreignCol] === 'number'
-    )
+    .filter(row => {
+      // Ensure both values exist and are valid numbers (including 0)
+      const finnish = row[finnishCol]
+      const foreign = row[foreignCol]
+      return finnish !== undefined && finnish !== null && 
+             foreign !== undefined && foreign !== null &&
+             typeof finnish === 'number' && !isNaN(finnish) &&
+             typeof foreign === 'number' && !isNaN(foreign)
+    })
     .map(row => {
-      const year = row[yearKey] || 'N/A'
+      const year = row[yearKey]
+      // Ensure year is parsed as number for proper sorting
+      const yearNum = typeof year === 'number' ? year : (typeof year === 'string' ? parseInt(year) : null)
       return {
-        name: String(year),
+        name: yearNum !== null && !isNaN(yearNum) ? String(yearNum) : String(year || 'N/A'),
         Finnish: row[finnishCol] as number,
         Foreign: row[foreignCol] as number,
         Total: (row[finnishCol] as number) + (row[foreignCol] as number)
@@ -220,12 +238,12 @@ export function buildGenderConfig(
 
   if (view === 'male-share' && shareOfMalesData.length > 0) {
     chartData = shareOfMalesData
-    chartTitle = 'Share of male employees in startups founded after 2010'
+    chartTitle = 'Share of male employees in startups'
     currentLabel = 'Share of Males'
     chartColor = '#4A90E2'
   } else if (view === 'female-share' && shareOfFemalesData.length > 0) {
     chartData = shareOfFemalesData
-    chartTitle = 'Share of female employees in startups founded after 2010'
+    chartTitle = 'Share of female employees in startups'
     currentLabel = 'Share of Females'
     chartColor = '#E94B7E'
   } else {
@@ -390,27 +408,76 @@ export function buildImmigrationConfig(
 
   const shareOfFinnishCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
-    return keyLower.includes('share') && 
-           (keyLower.includes('finnish') && keyLower.includes('background'))
+    return keyLower.includes('share') && keyLower.includes('finnish')
   })
 
   const shareOfForeignCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
-    return keyLower.includes('share') && 
-           (keyLower.includes('foreign') && keyLower.includes('background'))
+    return keyLower.includes('share') && keyLower.includes('foreign')
   })
 
-  // Process share data if available
+  // Process share data - use existing columns or compute from counts
   let shareOfFinnishData: Array<{ name: string; value: number }> = []
   let shareOfForeignData: Array<{ name: string; value: number }> = []
 
+  // Find Finnish and Foreign background columns for computing shares
+  const finnishCol = allColumns.find(key => {
+    const keyLower = key.toLowerCase()
+    return (keyLower.includes('finnish') && keyLower.includes('background')) ||
+           keyLower === 'finnish background'
+  })
+  
+  const foreignCol = allColumns.find(key => {
+    const keyLower = key.toLowerCase()
+    return (keyLower.includes('foreign') && keyLower.includes('background')) ||
+           keyLower === 'foreign background'
+  })
+
   if (shareOfFinnishCol) {
+    // Use existing share column
     shareOfFinnishData = data
-      .filter(row => row[shareOfFinnishCol] !== undefined && typeof row[shareOfFinnishCol] === 'number')
-      .map(row => ({
-        name: String(row[yearKey] || 'N/A'),
-        value: row[shareOfFinnishCol] as number
-      }))
+      .filter(row => {
+        const value = row[shareOfFinnishCol]
+        return value !== undefined && value !== null && 
+               typeof value === 'number' && !isNaN(value)
+      })
+      .map(row => {
+        const rawValue = row[shareOfFinnishCol] as number
+        // Convert to percentage if value is decimal (0-1), otherwise assume it's already percentage
+        const percentage = rawValue <= 1 ? rawValue * 100 : rawValue
+        const year = row[yearKey]
+        const yearNum = typeof year === 'number' ? year : (typeof year === 'string' ? parseInt(year) : null)
+        return {
+          name: yearNum !== null && !isNaN(yearNum) ? String(yearNum) : String(year || 'N/A'),
+          value: percentage
+        }
+      })
+      .sort((a, b) => {
+        const yearA = parseInt(a.name)
+        const yearB = parseInt(b.name)
+        if (!isNaN(yearA) && !isNaN(yearB)) {
+          return yearA - yearB
+        }
+        return 0
+      })
+  } else if (finnishCol && foreignCol) {
+    // Compute share from counts
+    shareOfFinnishData = data
+      .filter(row => 
+        row[finnishCol] !== undefined && typeof row[finnishCol] === 'number' &&
+        row[foreignCol] !== undefined && typeof row[foreignCol] === 'number'
+      )
+      .map(row => {
+        const finnish = row[finnishCol] as number
+        const foreign = row[foreignCol] as number
+        const total = finnish + foreign
+        // Handle divide-by-zero safely
+        const percentage = total > 0 ? (finnish / total) * 100 : 0
+        return {
+          name: String(row[yearKey] || 'N/A'),
+          value: percentage
+        }
+      })
       .sort((a, b) => {
         const yearA = parseInt(a.name)
         const yearB = parseInt(b.name)
@@ -422,12 +489,50 @@ export function buildImmigrationConfig(
   }
 
   if (shareOfForeignCol) {
+    // Use existing share column
     shareOfForeignData = data
-      .filter(row => row[shareOfForeignCol] !== undefined && typeof row[shareOfForeignCol] === 'number')
-      .map(row => ({
-        name: String(row[yearKey] || 'N/A'),
-        value: row[shareOfForeignCol] as number
-      }))
+      .filter(row => {
+        const value = row[shareOfForeignCol]
+        return value !== undefined && value !== null && 
+               typeof value === 'number' && !isNaN(value)
+      })
+      .map(row => {
+        const rawValue = row[shareOfForeignCol] as number
+        // Convert to percentage if value is decimal (0-1), otherwise assume it's already percentage
+        const percentage = rawValue <= 1 ? rawValue * 100 : rawValue
+        const year = row[yearKey]
+        const yearNum = typeof year === 'number' ? year : (typeof year === 'string' ? parseInt(year) : null)
+        return {
+          name: yearNum !== null && !isNaN(yearNum) ? String(yearNum) : String(year || 'N/A'),
+          value: percentage
+        }
+      })
+      .sort((a, b) => {
+        const yearA = parseInt(a.name)
+        const yearB = parseInt(b.name)
+        if (!isNaN(yearA) && !isNaN(yearB)) {
+          return yearA - yearB
+        }
+        return 0
+      })
+  } else if (finnishCol && foreignCol) {
+    // Compute share from counts
+    shareOfForeignData = data
+      .filter(row => 
+        row[finnishCol] !== undefined && typeof row[finnishCol] === 'number' &&
+        row[foreignCol] !== undefined && typeof row[foreignCol] === 'number'
+      )
+      .map(row => {
+        const finnish = row[finnishCol] as number
+        const foreign = row[foreignCol] as number
+        const total = finnish + foreign
+        // Handle divide-by-zero safely
+        const percentage = total > 0 ? (foreign / total) * 100 : 0
+        return {
+          name: String(row[yearKey] || 'N/A'),
+          value: percentage
+        }
+      })
       .sort((a, b) => {
         const yearA = parseInt(a.name)
         const yearB = parseInt(b.name)
@@ -446,12 +551,12 @@ export function buildImmigrationConfig(
 
   if (view === 'finnish-share' && shareOfFinnishData.length > 0) {
     chartData = shareOfFinnishData
-    chartTitle = 'Share of Finnish background employees in startups founded after 2010'
+    chartTitle = 'Share of Finnish background employees in startups'
     currentLabel = 'Share of Finnish'
     chartColor = '#3498DB'
   } else if (view === 'foreign-share' && shareOfForeignData.length > 0) {
     chartData = shareOfForeignData
-    chartTitle = 'Share of foreign background employees in startups founded after 2010'
+    chartTitle = 'Share of foreign background employees in startups'
     currentLabel = 'Share of Foreign'
     chartColor = '#9B59B6'
   } else {
@@ -491,6 +596,11 @@ export function buildImmigrationConfig(
     }
   ]
 
+  // Context text explaining the chart
+  const getContextText = (): string => {
+    return 'The immigration status of employees in startup-based firms shows the distribution between Finnish and foreign background workers over time.'
+  }
+
   return {
     data: chartData,
     title: chartTitle,
@@ -529,7 +639,7 @@ export function buildImmigrationConfig(
         }
       ],
       viewModeButtons: [
-        ...(shareOfFinnishCol ? [{
+        ...(shareOfFinnishData.length > 0 ? [{
           label: 'Share of Finnish',
           value: 'finnish-share',
           isActive: view === 'finnish-share',
@@ -539,7 +649,7 @@ export function buildImmigrationConfig(
             }
           }
         }] : []),
-        ...(shareOfForeignCol ? [{
+        ...(shareOfForeignData.length > 0 ? [{
           label: 'Share of Foreign',
           value: 'foreign-share',
           isActive: view === 'foreign-share',
@@ -551,6 +661,7 @@ export function buildImmigrationConfig(
         }] : [])
       ]
     },
+    contextText: getContextText(),
     yAxisConfig: {
       formatter: (value: number) => isShareView ? `${value.toFixed(1)}%` : value.toLocaleString(),
       width: isShareView ? 35 : undefined
