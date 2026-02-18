@@ -2,6 +2,67 @@
   width: 100%;
 }
 
+.infoPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  max-width: 100%;
+}
+
+.infoPanelTitle {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+}
+
+.infoPanelContent {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.infoPanelContent p {
+  margin: 0 0 1rem 0;
+}
+
+.infoPanelContent p:last-child {
+  margin-bottom: 0;
+}
+
+.infoPanelContent ul {
+  margin: 0.5rem 0 1rem 1.5rem;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.infoPanelContent li {
+  margin-bottom: 0.5rem;
+}
+
+.infoPanelContent li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .infoPanel {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .infoPanelTitle {
+    font-size: 1.125rem;
+  }
+
+  .infoPanelContent {
+    font-size: 0.875rem;
+  }
+}
+
 .helperText {
   color: var(--text-secondary, #666);
   font-size: 0.9375rem;

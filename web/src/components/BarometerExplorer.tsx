@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTheme } from '../contexts/ThemeContext'
 import GraphTemplate from './GraphTemplate'
 import type { GraphTemplateConfig } from './GraphTemplate'
@@ -25,6 +26,8 @@ const BarometerExplorer = ({
   onTabChange
 }: BarometerExplorerProps) => {
   const { theme } = useTheme()
+  const location = useLocation()
+  const isEmbedMode = location.pathname.startsWith('/embed')
   const [internalSelectedTab, setInternalSelectedTab] = useState<TabType>('financial')
   
   // Use external tab if provided, otherwise use internal state
@@ -232,13 +235,13 @@ const BarometerExplorer = ({
     return {
       data: chartData,
       title: getTabTitle(selectedTab),
-      titleNote: 'Balance = % positive responses − % negative responses',
+      titleNote: 'Balance = % very positive + (0.5*positive) - (0.5*%negative) - % very negative',
       dataLabel: 'Sentiment',
       series: series,
       yAxisConfig: {
         formatter: (value: number) => value.toFixed(1),
         domain: [-50, 50], // Fixed scale from -50 to +50
-        label: 'Balance index (-100 to +100)'
+        label: 'Balance Figure (-100 to +100)'
       },
       tooltipConfig: {
         formatter: (value: number) => [value.toFixed(1), 'Sentiment']
@@ -284,6 +287,35 @@ const BarometerExplorer = ({
 
   return (
     <div className={styles.barometerExplorer}>
+      {/* About the Startup Barometer - Only show on explore page, not in embed mode */}
+      {!isEmbedMode && (
+        <div className={styles.infoPanel}>
+          <h3 className={styles.infoPanelTitle}>About the Startup Barometer</h3>
+          <div className={styles.infoPanelContent}>
+            <p>
+              The Startup Barometer is a quarterly survey conducted among Finnish Startup Community members to measure sentiment in the startup ecosystem.
+            </p>
+            <p>
+              It tracks three key indicators for the past and next three months:
+            </p>
+            <ul>
+              <li>Financial situation of the company</li>
+              <li>Surrounding economic conditions</li>
+              <li>Changes in number of employees</li>
+            </ul>
+            <p>
+              Results are presented as balance figures (share positive − share negative), ranging from −100 (fully pessimistic) to +100 (fully optimistic).
+            </p>
+            <p>
+              The quarterly average of all balance figures forms an overall sentiment indicator.
+            </p>
+            <p>
+              The survey also collects insights on barriers to business growth.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Helper text - Mobile: centered above tabs */}
       <p className={`${styles.helperText} ${styles.helperTextMobile}`}>
         Metrics

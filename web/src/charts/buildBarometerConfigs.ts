@@ -174,13 +174,13 @@ export function buildBarometerConfig(
   return {
     data: chartData,
     title: getTabTitle(tab),
-    titleNote: 'Balance = % positive responses − % negative responses',
+    titleNote: 'Balance = % very positive + (0.5*positive) - (0.5*%negative) - % very negative',
     dataLabel: 'Sentiment',
     series: series,
     yAxisConfig: {
       formatter: (value: number) => value.toFixed(1),
       domain: [-50, 50],
-      label: 'Balance index (-100 to +100)'
+      label: 'Balance Figure (-100 to +100)'
     },
     tooltipConfig: {
       formatter: (value: number) => [value.toFixed(1), 'Sentiment']

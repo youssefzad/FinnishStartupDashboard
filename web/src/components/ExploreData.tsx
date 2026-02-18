@@ -1412,7 +1412,7 @@ const ExploreData = () => {
         </table>
       </div>
     )
-      }
+  }
     }
     
     return config
@@ -3103,7 +3103,7 @@ const ExploreData = () => {
               <div className="charts-section charts-section-employees">
                 <div className="section-header">
                     <h2 className="section-title">Employee characteristics</h2>
-                </div>
+                  </div>
                 <p className="section-description">Discover the composition of employees in startup-based firms in Finland</p>
                 
                 {/* Render Workforce Explorer if flag is enabled */}
@@ -3458,7 +3458,7 @@ const ExploreData = () => {
                       
                       return <BarChartTemplate config={genderConfig} />
                 })()}
-                
+            
                 {/* Immigration Chart (old implementation) */}
                 {immigrationComparisonData.length > 0 && (() => {
                   const chartColors = getChartColors()
