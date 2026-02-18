@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts'
 import { useTheme } from '../contexts/ThemeContext'
 import GraphTemplate from './GraphTemplate'
@@ -10,6 +10,7 @@ import EconomicImpactExplorer from './EconomicImpactExplorer'
 import WorkforceExplorer from './WorkforceExplorer'
 import BarometerExplorer from './BarometerExplorer'
 import PageHero from './PageHero'
+import { buildEmployeesConfig } from '../charts/buildEconomicImpactConfigs'
 import './ExploreData.css'
 
 // Feature flag: Set to true to enable Economic Impact Explorer
@@ -61,6 +62,8 @@ const getChartContext = (chartName: string): string | null => {
 
 const ExploreData = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const showDebug = new URLSearchParams(location.search).get('fscDebug') === '1'
   const { theme } = useTheme()
   const [allData, setAllData] = useState<any[]>([])
   const [employeesGenderData, setEmployeesGenderData] = useState<any[]>([])
@@ -68,7 +71,7 @@ const ExploreData = () => {
   const [barometerData, setBarometerData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [revenueFilter, setRevenueFilter] = useState<'all' | 'early-stage' | 'later-stage'>('all')
-  const [employeesFilter, setEmployeesFilter] = useState<'all' | 'finland'>('all')
+  const [employeesFilter, setEmployeesFilter] = useState<'all' | 'finland' | 'early-stage' | 'later-stage'>('all')
   const [firmsFilter, setFirmsFilter] = useState<'all' | 'finland' | 'early-stage' | 'later-stage'>('all')
   const [showMaleBar, setShowMaleBar] = useState<boolean>(true)
   const [showFemaleBar, setShowFemaleBar] = useState<boolean>(true)
@@ -113,6 +116,18 @@ const ExploreData = () => {
       setEmployeesGenderData(employeesGender)
       setRdiData(rdi)
       setBarometerData(barometer || [])
+      
+      // Debug: Check for new employee columns
+      if (showDebug && main.length > 0) {
+        const sampleRow = main[0]
+        const hasEarlyStage = 'EmployeesEarlyStage' in sampleRow
+        const hasLaterStage = 'EmployeesLaterStage' in sampleRow
+        console.log('[DEBUG] Employees columns check:', {
+          hasEarlyStage,
+          hasLaterStage,
+          sampleRowKeys: Object.keys(sampleRow).filter(k => k.toLowerCase().includes('employee'))
+        })
+      }
       
       if (main.length > 0) {
         const headers = Object.keys(main[0])
@@ -210,11 +225,16 @@ const ExploreData = () => {
     const metricLower = metric.toLowerCase().trim()
     console.log(`   Checking metric: "${metric}" (lowercase: "${metricLower}")`)
     
-    // Exact match for "Early Stage Startup Revenue"
+    // New column name: RevenueEarlyStage
+    if (metricLower === 'revenueearlystage' || metric === 'RevenueEarlyStage') {
+      console.log('✅ Found early-stage revenue metric (new name):', metric)
+      return true
+    }
+    // Old column name: "Early Stage Startup Revenue" (for backward compatibility)
     if (metricLower === 'early stage startup revenue' || 
         metricLower === 'early-stage startup revenue' ||
         metric === 'Early Stage Startup Revenue') {
-      console.log('✅ Found early-stage revenue metric (exact match):', metric)
+      console.log('✅ Found early-stage revenue metric (old name):', metric)
       return true
     }
     // Partial match: must have both "early" and "stage", and "revenue"
@@ -235,11 +255,16 @@ const ExploreData = () => {
   const scaleupRevenueMetric = availableMetrics.find(metric => {
     const metricLower = metric.toLowerCase().trim()
     
-    // Exact match for "Scaleup Revenue"
+    // New column name: RevenueLaterStage
+    if (metricLower === 'revenuelaterstage' || metric === 'RevenueLaterStage') {
+      console.log('✅ Found scaleup revenue metric (new name):', metric)
+      return true
+    }
+    // Old column name: "Scaleup Revenue" (for backward compatibility)
     if (metricLower === 'scaleup revenue' || 
         metricLower === 'scale-up revenue' ||
         metric === 'Scaleup Revenue') {
-      console.log('✅ Found scaleup revenue metric (exact match):', metric)
+      console.log('✅ Found scaleup revenue metric (old name):', metric)
       return true
     }
     // Partial match: must have "scaleup" or "scale-up" and "revenue"
@@ -268,16 +293,24 @@ const ExploreData = () => {
   // Find Number Startups and Number Scaleups columns (exclude from regular metrics)
   const numberStartupsMetric = availableMetrics.find(metric => {
     const metricLower = metric.toLowerCase().trim()
-    return metricLower === 'number startups' || 
-           metricLower === 'number of startups' ||
-           metric === 'Number Startups'
+    // New column name: FirmsEarlyStage
+    return metricLower === 'firmsearlystage' || 
+           metric === 'FirmsEarlyStage' ||
+           // Old column names (for backward compatibility)
+           (metricLower === 'number startups' || 
+            metricLower === 'number of startups' ||
+            metric === 'Number Startups')
   })
   
   const numberScaleupsMetric = availableMetrics.find(metric => {
     const metricLower = metric.toLowerCase().trim()
-    return metricLower === 'number scaleups' || 
-           metricLower === 'number of scaleups' ||
-           metric === 'Number Scaleups'
+    // New column name: FirmsLaterStage
+    return metricLower === 'firmslaterstage' || 
+           metric === 'FirmsLaterStage' ||
+           // Old column names (for backward compatibility)
+           (metricLower === 'number scaleups' || 
+            metricLower === 'number of scaleups' ||
+            metric === 'Number Scaleups')
   })
   
   if (numberStartupsMetric) {
@@ -1423,7 +1456,17 @@ const ExploreData = () => {
     if (!allData || allData.length === 0) return null
 
     // Find revenue and early stage revenue columns
-    const revenueCol = Object.keys(allData[0]).find(key => {
+    // Check all rows since columns may not exist in first row
+    const getAllColumnNames = () => {
+      const columnSet = new Set<string>()
+      allData.forEach(row => {
+        Object.keys(row).forEach(key => columnSet.add(key))
+      })
+      return Array.from(columnSet)
+    }
+    const allColumns = getAllColumnNames()
+    
+    const revenueCol = allColumns.find(key => {
       const keyLower = key.toLowerCase()
       return (keyLower.includes('revenue') || 
               keyLower.includes('liikevaihto') ||
@@ -1432,7 +1475,9 @@ const ExploreData = () => {
               !keyLower.includes('early') &&
               !keyLower.includes('stage') &&
               !keyLower.includes('scaleup') &&
-              !keyLower.includes('scale-up')
+              !keyLower.includes('scale-up') &&
+              keyLower !== 'revenueearlystage' &&
+              keyLower !== 'revenuelaterstage'
     })
 
     const earlyStageRevenueCol = earlyStageRevenueMetric || null
@@ -1465,11 +1510,16 @@ const ExploreData = () => {
         })
         .map(row => {
           const year = row[yearKey] || 'N/A'
-          const value = row[selectedColumn]
+          const rawValue = row[selectedColumn]
+          // Check if data is already in billions (values < 1000) or in raw units
+          // If value is > 1000, assume it's in raw units and convert to billions
+          const valueInBillions = rawValue > 1000 ? rawValue / 1000000000 : rawValue
+          // Store originalValue as-is (if already in billions, keep it; if in raw units, keep raw)
+          // Tooltip formatter will handle conversion if needed
           return {
             name: String(year),
-            value: value / 1000000000, // Convert to billions
-            originalValue: value
+            value: valueInBillions, // Chart value in billions
+            originalValue: rawValue // Keep original value as-is from the sheet
           }
         })
         .sort((a, b) => {
@@ -1500,8 +1550,12 @@ const ExploreData = () => {
         const latestYear = latestData?.name || '2023'
         const earliestYear = earliestData?.name || '2010'
         
-        const latestBillions = (latestValue / 1000000000).toFixed(2)
-        const earliestBillions = earliestValue > 0 ? (earliestValue / 1000000000).toFixed(2) : '0.01'
+        // Convert to billions for display (originalValue is in raw units)
+        // Check if value is already in billions (< 1000) or needs conversion
+        const latestBillions = latestValue > 1000 ? (latestValue / 1000000000).toFixed(2) : latestValue.toFixed(2)
+        const earliestBillions = earliestValue > 0 
+          ? (earliestValue > 1000 ? (earliestValue / 1000000000).toFixed(2) : earliestValue.toFixed(2))
+          : '0.01'
         
         return `Early stage startup revenue represents a significant and growing portion of the Finnish startup ecosystem. Starting from approximately €${earliestBillions} billion in ${earliestYear}, early stage startups have shown remarkable growth, reaching around €${latestBillions} billion in ${latestYear}. This segment demonstrates the vitality and potential of new ventures in Finland's innovation landscape.`
       } else if (filter === 'later-stage') {
@@ -1512,8 +1566,12 @@ const ExploreData = () => {
         const latestYear = latestData?.name || '2023'
         const earliestYear = earliestData?.name || '2010'
         
-        const latestBillions = (latestValue / 1000000000).toFixed(2)
-        const earliestBillions = earliestValue > 0 ? (earliestValue / 1000000000).toFixed(2) : '0.01'
+        // Convert to billions for display (originalValue is in raw units)
+        // Check if value is already in billions (< 1000) or needs conversion
+        const latestBillions = latestValue > 1000 ? (latestValue / 1000000000).toFixed(2) : latestValue.toFixed(2)
+        const earliestBillions = earliestValue > 0 
+          ? (earliestValue > 1000 ? (earliestValue / 1000000000).toFixed(2) : earliestValue.toFixed(2))
+          : '0.01'
         
         return `Later-stage revenue represents a substantial portion of the Finnish startup ecosystem. Starting from approximately €${earliestBillions} billion in ${earliestYear}, later-stage firms have demonstrated strong growth, reaching around €${latestBillions} billion in ${latestYear}. These companies represent the maturing segment of the ecosystem, contributing significantly to Finland's economic growth and innovation capacity.`
       } else {
@@ -1557,7 +1615,9 @@ const ExploreData = () => {
       },
       tooltipConfig: {
         formatter: (_value: number, originalValue: number, label: string) => {
-          const billions = originalValue / 1000000000
+          // originalValue might be in billions (< 1000) or raw units (> 1000)
+          // Convert to billions for display
+          const billions = originalValue > 1000 ? originalValue / 1000000000 : originalValue
           return [`€${billions.toFixed(2)}B`, label]
         }
       },
@@ -1598,140 +1658,37 @@ const ExploreData = () => {
     )
   }
 
-  // Build employees chart config for GraphTemplate
+  // Build employees chart config for GraphTemplate - using shared config builder
   const buildEmployeesChartConfig = (): GraphTemplateConfig | null => {
     if (!allData || allData.length === 0) return null
 
-    // Find employees columns
-    const employeesCol = Object.keys(allData[0]).find(key => {
-      const keyLower = key.toLowerCase()
-      return (keyLower.includes('employees') || 
-              keyLower.includes('employee') ||
-              keyLower.includes('employment') ||
-              keyLower.includes('jobs') ||
-              keyLower.includes('workers') ||
-              keyLower.includes('työlliset')) &&
-              !keyLower.includes('finland') &&
-              !keyLower.includes('suomi') &&
-              !keyLower.includes('share')
-    })
-
-    const employeesInFinlandCol = Object.keys(allData[0]).find(key => {
-      const keyLower = key.toLowerCase()
-      return (keyLower.includes('employees') || 
-              keyLower.includes('employee') ||
-              keyLower.includes('työlliset')) &&
-              (keyLower.includes('finland') ||
-               keyLower.includes('suomi'))
-    })
-
-    if (!employeesCol) return null
-
-    // Find year column
-    const yearKey = Object.keys(allData[0] || {}).find(key => {
-      const keyLower = key.toLowerCase()
-      return keyLower.includes('year') || 
-             keyLower.includes('period') ||
-             keyLower.includes('date') ||
-             keyLower.includes('vuosi')
-    }) || 'Year'
-
-    // Prepare chart data based on selected filter
-    const getChartData = () => {
-      const selectedColumn = employeesFilter === 'finland' && employeesInFinlandCol 
-        ? employeesInFinlandCol 
-        : employeesCol
-
-      return allData
-        .filter(row => {
-          const value = row[selectedColumn]
-          return value !== undefined && typeof value === 'number' && value >= 0
-      })
-      .map(row => {
-          const year = row[yearKey] || 'N/A'
-          const value = row[selectedColumn]
-        return {
-          name: String(year),
-            value: value,
-          originalValue: value
-        }
-      })
-      .sort((a, b) => {
-        const yearA = parseInt(a.name)
-        const yearB = parseInt(b.name)
-        if (!isNaN(yearA) && !isNaN(yearB)) {
-          return yearA - yearB
-        }
-        return 0
-      })
-    }
-
-    const chartData = getChartData()
-    const currentLabel = employeesFilter === 'finland' ? 'Employees in Finland' : 'Total Employees'
-    const yearRange = getYearRange(chartData)
-    const chartTitle = employeesFilter === 'finland'
-      ? `Employees in Finland ${yearRange}`
-      : 'Number of Employees'
-    
     const chartColors = getChartColors()
-
-    // Get contextual text based on filter
-    const getContextText = (filter: string) => {
-      if (filter === 'finland') {
-        return 'The number of employees working in Finland within startup-based firms has shown significant growth over the years. This metric reflects the local employment impact of the Finnish startup ecosystem and demonstrates how these companies contribute to job creation within the country.'
-      } else {
-        return 'The total number of employees in startup-based firms has grown substantially over the past two decades. This growth reflects the expanding scale and impact of the Finnish startup ecosystem, contributing to employment opportunities both domestically and internationally.'
-      }
-    }
-
-    // Build filter options
-    const filterOptions = [
-      { value: 'all', label: 'All Employees' }
-    ]
-    if (employeesInFinlandCol) {
-      filterOptions.push({ value: 'finland', label: 'In Finland' })
-    }
-
-    return {
-      data: chartData,
-      title: chartTitle,
-      dataLabel: currentLabel,
-      filtersConfig: {
-        enabled: true,
-        options: filterOptions,
-        defaultFilter: 'all',
-        filterKey: 'employeesFilter'
-      },
-      yAxisConfig: {
-        formatter: (value: number) => value.toLocaleString(),
-        width: 35
-      },
-      tooltipConfig: {
-        formatter: (_value: number, originalValue: number, label: string) => {
-          return [originalValue.toLocaleString(), label]
-        }
-      },
-      styleConfig: {
-        strokeColor: '#A580F2',
-        gradientId: 'gradient-filterable-employees',
-        gradientStartColor: '#A580F2',
-        gradientEndColor: '#A580F2',
-        gradientStartOpacity: 0.3,
-        gradientEndOpacity: 0.05,
-        strokeWidth: 2
-      },
-      contextText: getContextText,
+    const config = buildEmployeesConfig(allData, {
+      filter: employeesFilter,
+      windowWidth,
+      chartColors,
+      getXAxisInterval,
       onShowTable: () => {
         const newValue = !showEmployeesTable
         setShowEmployeesTable(newValue)
       },
       onFullscreen: () => setFullscreenChart('employees'),
-      showTable: showEmployeesTable,
-      chartColors,
-      windowWidth,
-      getXAxisInterval,
-      isRevenueValue: false
+      showTable: showEmployeesTable
+    })
+
+    // Add debug info when ?fscDebug=1
+    if (showDebug && config) {
+      const debugInfo = config._debug || {}
+      const filters = config.filtersConfig?.options.map(o => o.value).join(',') || 'none'
+      // Inject debug marker into titleNote (if it doesn't exist, we'll add it)
+      if (!config.titleNote) {
+        config.titleNote = `EMPLOYEES_CONFIG_SOURCE=buildEconomicImpactConfigs.ts | filters=${filters} | columnUsed=${debugInfo.columnUsed || 'unknown'}`
+      } else {
+        config.titleNote = `${config.titleNote} | EMPLOYEES_CONFIG_SOURCE=buildEconomicImpactConfigs.ts | filters=${filters} | columnUsed=${debugInfo.columnUsed || 'unknown'}`
+      }
     }
+
+    return config
   }
 
   // Render filterable employees chart using GraphTemplate
@@ -2040,7 +1997,8 @@ const ExploreData = () => {
       tooltipConfig: {
         formatter: (_value: number, originalValue: number, label: string) => {
           if (isRevenue) {
-            const billions = originalValue / 1000000000
+            // originalValue might be in billions (< 1000) or raw units (> 1000)
+            const billions = originalValue > 1000 ? originalValue / 1000000000 : originalValue
             return [`€${billions.toFixed(2)}B`, label]
           }
           return [originalValue.toLocaleString(), label]
@@ -2082,7 +2040,17 @@ const ExploreData = () => {
     let chartTitle = ''
 
     if (fullscreenChart === 'revenue') {
-      const revenueCol = Object.keys(allData[0] || {}).find(key => {
+      // Check all rows since columns may not exist in first row
+      const getAllColumnNames = () => {
+        const columnSet = new Set<string>()
+        allData.forEach(row => {
+          Object.keys(row).forEach(key => columnSet.add(key))
+        })
+        return Array.from(columnSet)
+      }
+      const allColumns = getAllColumnNames()
+      
+      const revenueCol = allColumns.find(key => {
         const keyLower = key.toLowerCase()
         return (keyLower.includes('revenue') || 
                 keyLower.includes('liikevaihto') ||
@@ -2091,7 +2059,9 @@ const ExploreData = () => {
                 !keyLower.includes('early') &&
                 !keyLower.includes('stage') &&
                 !keyLower.includes('scaleup') &&
-                !keyLower.includes('scale-up')
+                !keyLower.includes('scale-up') &&
+                keyLower !== 'revenueearlystage' &&
+                keyLower !== 'revenuelaterstage'
       })
       const earlyStageRevenueCol = earlyStageRevenueMetric || null
       const scaleupRevenueCol = scaleupRevenueMetric || null
@@ -2118,11 +2088,16 @@ const ExploreData = () => {
         })
         .map(row => {
           const year = row[yearKey] || 'N/A'
-          const value = row[selectedColumn || '']
+          const rawValue = row[selectedColumn || '']
+          // Check if data is already in billions (values < 1000) or in raw units
+          // If value is > 1000, assume it's in raw units and convert to billions
+          const valueInBillions = rawValue > 1000 ? rawValue / 1000000000 : rawValue
+          // Store originalValue as-is (if already in billions, keep it; if in raw units, keep raw)
+          // Tooltip formatter will handle conversion if needed
           return {
             name: String(year),
-            value: value / 1000000000,
-            originalValue: value
+            value: valueInBillions, // Chart value in billions
+            originalValue: rawValue // Keep original value as-is from the sheet
           }
         })
         .sort((a, b) => {
@@ -2770,7 +2745,10 @@ const ExploreData = () => {
                   }}
                   formatter={(value: number, _name: string, props: any) => {
                       if (isRevenueValue) {
-                      const billions = props.payload.originalValue / 1000000000
+                      // originalValue might be in billions (< 1000) or raw units (> 1000)
+                        const billions = props.payload.originalValue > 1000 
+                          ? props.payload.originalValue / 1000000000 
+                          : props.payload.originalValue
                         return [`€${billions.toFixed(2)}B`, currentLabel]
                     }
                       if ((fullscreenChart === 'gender' && genderShareView !== 'none') ||
@@ -2908,22 +2886,48 @@ const ExploreData = () => {
                   // Render Economic Impact Explorer if flag is enabled
                   if (USE_ECON_IMPACT_EXPLORER) {
                     return (
-                      <EconomicImpactExplorer
-                        buildRevenueConfig={buildRevenueChartConfig}
-                        buildEmployeesConfig={buildEmployeesChartConfig}
-                        buildFirmsConfig={buildFirmsChartConfig}
-                        buildRdiConfig={buildRdiChartConfig}
-                        revenueFilter={revenueFilter}
-                        setRevenueFilter={setRevenueFilter}
-                        employeesFilter={employeesFilter}
-                        setEmployeesFilter={setEmployeesFilter}
-                        firmsFilter={firmsFilter}
-                        setFirmsFilter={setFirmsFilter}
-                        hasRevenue={hasRevenue}
-                        hasEmployees={hasEmployees && hasEmployeesInFinland}
-                        hasFirms={hasFirms || !!numberStartupsMetric || !!numberScaleupsMetric}
-                        hasRdi={hasRdi}
-                      />
+                      <>
+                        {showDebug && (
+                          <div style={{ marginBottom: '1rem', padding: '0.5rem', background: 'rgba(165, 128, 242, 0.1)', borderRadius: '4px', fontSize: '0.875rem' }}>
+                            <button
+                              onClick={() => {
+                                localStorage.removeItem('startupData')
+                                window.location.reload()
+                              }}
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                background: '#A580F2',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                marginRight: '0.5rem'
+                              }}
+                            >
+                              Clear localStorage Cache
+                            </button>
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              Data source: JSON files (primary) → localStorage (fallback)
+                            </span>
+                          </div>
+                        )}
+                        <EconomicImpactExplorer
+                          buildRevenueConfig={buildRevenueChartConfig}
+                          buildEmployeesConfig={buildEmployeesChartConfig}
+                          buildFirmsConfig={buildFirmsChartConfig}
+                          buildRdiConfig={buildRdiChartConfig}
+                          revenueFilter={revenueFilter}
+                          setRevenueFilter={setRevenueFilter}
+                          employeesFilter={employeesFilter}
+                          setEmployeesFilter={setEmployeesFilter}
+                          firmsFilter={firmsFilter}
+                          setFirmsFilter={setFirmsFilter}
+                          hasRevenue={hasRevenue}
+                          hasEmployees={hasEmployees && hasEmployeesInFinland}
+                          hasFirms={hasFirms || !!numberStartupsMetric || !!numberScaleupsMetric}
+                          hasRdi={hasRdi}
+                        />
+                      </>
                     )
                   }
                   
@@ -3054,7 +3058,8 @@ const ExploreData = () => {
                         tooltipConfig: {
                           formatter: (_value: number, originalValue: number, label: string) => {
                                       if (isRevenue) {
-                              const billions = originalValue / 1000000000
+                              // originalValue might be in billions (< 1000) or raw units (> 1000)
+                              const billions = originalValue > 1000 ? originalValue / 1000000000 : originalValue
                               return [`€${billions.toFixed(2)}B`, label]
                                       }
                             return [originalValue.toLocaleString(), label]

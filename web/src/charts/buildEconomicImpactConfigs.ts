@@ -70,14 +70,22 @@ export function buildRevenueConfig(
 
   const earlyStageRevenueCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
-    return (keyLower.includes('revenue') || keyLower.includes('turnover') || keyLower.includes('liikevaihto')) &&
-           (keyLower.includes('early') && keyLower.includes('stage'))
+    // New column name: RevenueEarlyStage
+    return keyLower === 'revenueearlystage' || 
+           key === 'RevenueEarlyStage' ||
+           // Fallback to old pattern for backward compatibility
+           ((keyLower.includes('revenue') || keyLower.includes('turnover') || keyLower.includes('liikevaihto')) &&
+            (keyLower.includes('early') && keyLower.includes('stage')))
   })
 
   const scaleupRevenueCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
-    return (keyLower.includes('revenue') || keyLower.includes('turnover')) &&
-           (keyLower.includes('scaleup') || keyLower.includes('scale-up'))
+    // New column name: RevenueLaterStage
+    return keyLower === 'revenuelaterstage' || 
+           key === 'RevenueLaterStage' ||
+           // Fallback to old pattern for backward compatibility
+           ((keyLower.includes('revenue') || keyLower.includes('turnover')) &&
+            (keyLower.includes('scaleup') || keyLower.includes('scale-up')))
   })
 
   if (!revenueCol) return null
@@ -102,11 +110,16 @@ export function buildRevenueConfig(
         })
         .map(row => {
           const year = row[yearKey] || 'N/A'
-          const value = row[selectedColumn]
+          const rawValue = row[selectedColumn]
+          // Check if data is already in billions (values < 1000) or in raw units
+          // If value is > 1000, assume it's in raw units and convert to billions
+          const valueInBillions = rawValue > 1000 ? rawValue / 1000000000 : rawValue
+          // Store originalValue as-is (if already in billions, keep it; if in raw units, keep raw)
+          // Tooltip formatter will handle conversion if needed
           return {
             name: String(year),
-            value: value / 1000000000, // Convert to billions
-            originalValue: value
+            value: valueInBillions, // Chart value in billions
+            originalValue: rawValue // Keep original value as-is from the sheet
           }
         })
         .sort((a, b) => {
@@ -162,7 +175,9 @@ export function buildRevenueConfig(
     },
     tooltipConfig: {
       formatter: (_value: number, originalValue: number, label: string) => {
-        const billions = originalValue / 1000000000
+        // originalValue might be in billions (< 1000) or raw units (> 1000)
+        // Convert to billions for display
+        const billions = originalValue > 1000 ? originalValue / 1000000000 : originalValue
         return [`€${billions.toFixed(2)}B`, label]
       }
     },
@@ -229,6 +244,9 @@ export function buildEmployeesConfig(
             keyLower.includes('työlliset')) &&
             !keyLower.includes('finland') &&
             !keyLower.includes('suomi') &&
+            !keyLower.includes('early') &&
+            !keyLower.includes('later') &&
+            !keyLower.includes('stage') &&
             !keyLower.includes('share')
   })
 
@@ -243,51 +261,96 @@ export function buildEmployeesConfig(
             (keyLower.includes('finland') || keyLower.includes('suomi'))
   })
 
-  if (!employeesCol && !employeesInFinlandCol) return null
+  const employeesEarlyStageCol = allColumns.find(key => {
+    const keyLower = key.toLowerCase()
+    // New column name: EmployeesEarlyStage
+    return keyLower === 'employeesearlystage' ||
+           key === 'EmployeesEarlyStage'
+  })
+
+  const employeesLaterStageCol = allColumns.find(key => {
+    const keyLower = key.toLowerCase()
+    // New column name: EmployeesLaterStage
+    return keyLower === 'employeeslaterstage' ||
+           key === 'EmployeesLaterStage'
+  })
+
+  if (!employeesCol && !employeesInFinlandCol && !employeesEarlyStageCol && !employeesLaterStageCol) return null
 
   const yearKey = findYearColumn(data)
 
   const getChartData = () => {
-    const selectedColumn = filter === 'finland' && employeesInFinlandCol 
-      ? employeesInFinlandCol 
-      : employeesCol
+    let selectedColumn = employeesCol || employeesInFinlandCol || employeesEarlyStageCol || employeesLaterStageCol
 
-    if (!selectedColumn) return []
+    if (filter === 'finland' && employeesInFinlandCol) {
+      selectedColumn = employeesInFinlandCol
+    } else if (filter === 'early-stage' && employeesEarlyStageCol) {
+      selectedColumn = employeesEarlyStageCol
+    } else if (filter === 'later-stage' && employeesLaterStageCol) {
+      selectedColumn = employeesLaterStageCol
+    }
 
-    return data
-      .filter(row => {
-        const value = row[selectedColumn]
-        return value !== undefined && typeof value === 'number' && value >= 0
-      })
-      .map(row => {
-        const year = row[yearKey] || 'N/A'
-        const value = row[selectedColumn]
-        return {
-          name: String(year),
-          value: value,
-          originalValue: value
-        }
-      })
-      .sort((a, b) => {
-        const yearA = parseInt(a.name)
-        const yearB = parseInt(b.name)
-        if (!isNaN(yearA) && !isNaN(yearB)) {
-          return yearA - yearB
-        }
-        return 0
-      })
+    if (!selectedColumn) return { column: null, data: [] }
+
+    return {
+      column: selectedColumn,
+      data: data
+        .filter(row => {
+          const value = row[selectedColumn]
+          return value !== undefined && typeof value === 'number' && value >= 0
+        })
+        .map(row => {
+          const year = row[yearKey] || 'N/A'
+          const value = row[selectedColumn]
+          return {
+            name: String(year),
+            value: value,
+            originalValue: value
+          }
+        })
+        .sort((a, b) => {
+          const yearA = parseInt(a.name)
+          const yearB = parseInt(b.name)
+          if (!isNaN(yearA) && !isNaN(yearB)) {
+            return yearA - yearB
+          }
+          return 0
+        })
+    }
   }
 
-  const chartData = getChartData()
+  const { column: selectedColumn, data: chartData } = getChartData()
   if (chartData.length === 0) return null
 
-  const currentLabel = filter === 'finland' ? 'Employees in Finland' : 'Total Employees'
+  let currentLabel = 'Total Employees'
+  if (filter === 'finland') currentLabel = 'Employees in Finland'
+  if (filter === 'early-stage') currentLabel = 'Employees (Early-Stage)'
+  if (filter === 'later-stage') currentLabel = 'Employees (Later-Stage)'
 
   const filterOptions = [
     { value: 'all', label: 'All Employees' }
   ]
   if (employeesInFinlandCol) {
-    filterOptions.push({ value: 'finland', label: 'Finland Only' })
+    filterOptions.push({ value: 'finland', label: 'In Finland' })
+  }
+  if (employeesEarlyStageCol) {
+    filterOptions.push({ value: 'early-stage', label: 'Early-Stage' })
+  }
+  if (employeesLaterStageCol) {
+    filterOptions.push({ value: 'later-stage', label: 'Later-Stage' })
+  }
+
+  // Get contextual text based on filter
+  const getContextText = (filterValue: string): string => {
+    if (filterValue === 'finland') {
+      return 'The number of employees working in Finland within startup-based firms has shown significant growth over the years. This metric reflects the local employment impact of the Finnish startup ecosystem and demonstrates how these companies contribute to job creation within the country.'
+    } else if (filterValue === 'early-stage') {
+      return 'Early-stage startups represent a growing segment of the Finnish startup ecosystem. These companies are in their initial growth phase and contribute significantly to job creation and innovation in Finland.'
+    } else if (filterValue === 'later-stage') {
+      return 'Later-stage startups (scaleups) represent mature companies that have achieved significant growth. These firms employ a substantial portion of the workforce in the Finnish startup ecosystem and drive economic impact through scale.'
+    } else {
+      return 'The total number of employees in startup-based firms has grown substantially over the past two decades. This growth reflects the expanding scale and impact of the Finnish startup ecosystem, contributing to employment opportunities both domestically and internationally.'
+    }
   }
 
   return {
@@ -300,6 +363,12 @@ export function buildEmployeesConfig(
       defaultFilter: 'all',
       filterKey: 'employeesFilter'
     },
+    // Debug info (only populated when needed)
+    _debug: {
+      filter,
+      columnUsed: selectedColumn || 'unknown'
+    },
+    contextText: getContextText,
     yAxisConfig: {
       formatter: (value: number) => value.toLocaleString(),
       width: 35
@@ -395,14 +464,20 @@ export function buildFirmsConfig(
 
   const numberStartupsCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
-    return keyLower === 'number startups' || 
-           keyLower === 'number of startups'
+    // New column name: FirmsEarlyStage
+    return keyLower === 'firmsearlystage' || 
+           key === 'FirmsEarlyStage' ||
+           // Fallback to old pattern for backward compatibility
+           (keyLower === 'number startups' || keyLower === 'number of startups')
   })
 
   const numberScaleupsCol = allColumns.find(key => {
     const keyLower = key.toLowerCase()
-    return keyLower === 'number scaleups' || 
-           keyLower === 'number of scaleups'
+    // New column name: FirmsLaterStage
+    return keyLower === 'firmslaterstage' || 
+           key === 'FirmsLaterStage' ||
+           // Fallback to old pattern for backward compatibility
+           (keyLower === 'number scaleups' || keyLower === 'number of scaleups')
   })
 
   if (!firmsCol && !numberStartupsCol && !numberScaleupsCol) return null

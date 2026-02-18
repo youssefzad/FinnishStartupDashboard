@@ -3,6 +3,16 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import EmbedModal from './EmbedModal'
 import type { ChartId } from '../config/chartRegistry'
 
+// Shared revenue formatting helper
+// Formats revenue values that may be in billions (< 1000) or raw units (> 1000)
+function formatRevenueBillions(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-'
+  // If value is > 1000, assume it's in raw units and convert to billions
+  // If value is < 1000, assume it's already in billions
+  const billions = value > 1000 ? value / 1000000000 : value
+  return `€${billions.toFixed(2)}B`
+}
+
 // Type definitions for graph configuration
 export interface FilterOption {
   value: string
@@ -220,7 +230,7 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                 <td>{row.name}</td>
                 <td>
                   {isRevenueValue 
-                    ? `€${((row.originalValue || row.value || 0) / 1000000000).toFixed(2)}B`
+                    ? formatRevenueBillions(row.originalValue ?? row.value)
                     : (row.originalValue || row.value || 0).toLocaleString()
                   }
                 </td>

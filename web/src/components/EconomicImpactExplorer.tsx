@@ -13,8 +13,8 @@ interface EconomicImpactExplorerProps {
   // Filter values and setters
   revenueFilter: 'all' | 'early-stage' | 'later-stage'
   setRevenueFilter: (value: 'all' | 'early-stage' | 'later-stage') => void
-  employeesFilter: 'all' | 'finland'
-  setEmployeesFilter: (value: 'all' | 'finland') => void
+  employeesFilter: 'all' | 'finland' | 'early-stage' | 'later-stage'
+  setEmployeesFilter: (value: 'all' | 'finland' | 'early-stage' | 'later-stage') => void
   firmsFilter: 'all' | 'finland' | 'early-stage' | 'later-stage'
   setFirmsFilter: (value: 'all' | 'finland' | 'early-stage' | 'later-stage') => void
   
@@ -148,7 +148,7 @@ const EconomicImpactExplorer = ({
             key={`explorer-employees-${employeesFilter}`} // Force remount on filter change
             config={config}
             filterValue={employeesFilter}
-            onFilterChange={(value) => setEmployeesFilter(value as 'all' | 'finland')}
+            onFilterChange={(value) => setEmployeesFilter(value as 'all' | 'finland' | 'early-stage' | 'later-stage')}
             chartId="economic-impact-employees"
           />
         )
