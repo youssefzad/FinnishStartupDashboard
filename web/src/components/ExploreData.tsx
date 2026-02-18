@@ -988,12 +988,12 @@ const ExploreData = () => {
     if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
       chartData = shareOfMalesData
       yearRange = getYearRange(shareOfMalesData)
-      chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
+      chartTitle = 'Share of male employees'
       currentLabel = 'Share of Males'
     } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
       chartData = shareOfFemalesData
       yearRange = getYearRange(shareOfFemalesData)
-      chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
+      chartTitle = 'Share of female employees'
       currentLabel = 'Share of Females'
     } else if (genderComparisonData.length > 0) {
       // Bar chart view
@@ -1290,12 +1290,12 @@ const ExploreData = () => {
     if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
       chartData = shareOfFinnishData
       yearRange = getYearRange(shareOfFinnishData)
-      chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
+      chartTitle = 'Share of Finnish background employees'
       currentLabel = 'Share of Finnish'
     } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
       chartData = shareOfForeignData
       yearRange = getYearRange(shareOfForeignData)
-      chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
+      chartTitle = 'Share of foreign background employees'
       currentLabel = 'Share of Foreign'
     } else if (immigrationComparisonData.length > 0) {
       // Bar chart view
@@ -2308,13 +2308,13 @@ const ExploreData = () => {
         currentLabel = 'Share of Males'
         isRevenueValue = false
         const yearRange = getYearRange(chartData)
-        chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
+        chartTitle = 'Share of male employees'
       } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
         chartData = shareOfFemalesData
         currentLabel = 'Share of Females'
         isRevenueValue = false
         const yearRange = getYearRange(chartData)
-        chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
+        chartTitle = 'Share of female employees'
       } else if (genderComparisonData.length > 0) {
         // Bar chart view with toggles
         chartData = genderComparisonData
@@ -2328,13 +2328,13 @@ const ExploreData = () => {
         currentLabel = 'Share of Finnish'
         isRevenueValue = false
         const yearRange = getYearRange(chartData)
-        chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
+        chartTitle = 'Share of Finnish background employees'
       } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
         chartData = shareOfForeignData
         currentLabel = 'Share of Foreign'
         isRevenueValue = false
         const yearRange = getYearRange(chartData)
-        chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
+        chartTitle = 'Share of foreign background employees'
       } else if (immigrationComparisonData.length > 0) {
         // Bar chart view with toggles
         chartData = immigrationComparisonData.map(row => ({
@@ -3291,12 +3291,12 @@ const ExploreData = () => {
                   if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
                     chartData = shareOfMalesData
                     yearRange = getYearRange(shareOfMalesData)
-                    chartTitle = `Share of male employees in startups founded after 2010 (${yearRange})`
+                    chartTitle = 'Share of male employees'
                     currentLabel = 'Share of Males'
                   } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
                     chartData = shareOfFemalesData
                     yearRange = getYearRange(shareOfFemalesData)
-                    chartTitle = `Share of female employees in startups founded after 2010 (${yearRange})`
+                    chartTitle = 'Share of female employees'
                     currentLabel = 'Share of Females'
                   } else if (genderComparisonData.length > 0) {
                     // Bar chart view
@@ -3619,12 +3619,12 @@ const ExploreData = () => {
                   if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
                     chartData = shareOfFinnishData
                     yearRange = getYearRange(shareOfFinnishData)
-                    chartTitle = `Share of Finnish background employees in startups founded after 2010 (${yearRange})`
+                    chartTitle = 'Share of Finnish background employees'
                     currentLabel = 'Share of Finnish'
                   } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
                     chartData = shareOfForeignData
                     yearRange = getYearRange(shareOfForeignData)
-                    chartTitle = `Share of foreign background employees in startups founded after 2010 (${yearRange})`
+                    chartTitle = 'Share of foreign background employees'
                     currentLabel = 'Share of Foreign'
                   } else if (immigrationComparisonData.length > 0) {
                     // Bar chart view

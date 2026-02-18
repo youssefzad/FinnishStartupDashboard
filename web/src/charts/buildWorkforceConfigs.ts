@@ -238,12 +238,12 @@ export function buildGenderConfig(
 
   if (view === 'male-share' && shareOfMalesData.length > 0) {
     chartData = shareOfMalesData
-    chartTitle = 'Share of male employees in startups'
+    chartTitle = 'Share of male employees'
     currentLabel = 'Share of Males'
     chartColor = '#4A90E2'
   } else if (view === 'female-share' && shareOfFemalesData.length > 0) {
     chartData = shareOfFemalesData
-    chartTitle = 'Share of female employees in startups'
+    chartTitle = 'Share of female employees'
     currentLabel = 'Share of Females'
     chartColor = '#E94B7E'
   } else {

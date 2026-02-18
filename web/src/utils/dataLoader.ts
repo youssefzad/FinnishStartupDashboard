@@ -377,9 +377,10 @@ function formatValue(value: number, isRevenue: boolean = false, showAbsolute: bo
   
   if (isRevenue) {
     if (value >= 1000000000) {
+      // Value is in raw units (e.g., 12201000000), convert to billions
       const billions = value / 1000000000
-      // Remove trailing zeros
-      const formatted = parseFloat(billions.toFixed(2))
+      // Always show 2 decimal places for billions (e.g., €12.20B)
+      const formatted = billions.toFixed(2)
       return `€${formatted}B`
     } else if (value >= 1000000) {
       const millions = value / 1000000
@@ -389,8 +390,12 @@ function formatValue(value: number, isRevenue: boolean = false, showAbsolute: bo
       const thousands = value / 1000
       const formatted = parseFloat(thousands.toFixed(2))
       return `€${formatted}K`
+    } else {
+      // Value is already in billions (e.g., 12.201), format with B suffix
+      // Always show 2 decimal places for billions (e.g., €12.20B)
+      const formatted = value.toFixed(2)
+      return `€${formatted}B`
     }
-    return `€${value.toFixed(2)}`
   } else {
     if (value >= 1000000) {
       const millions = value / 1000000
