@@ -971,8 +971,7 @@ const ExploreData = () => {
     
     const genderAnalysisText = getGenderAnalysis()
     
-    // Determine year range and chart title based on view
-    let yearRange = ''
+    // Determine chart title based on view
     let chartTitle = ''
     let chartData: any[] = []
     let currentLabel = ''
@@ -987,18 +986,15 @@ const ExploreData = () => {
     
     if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
       chartData = shareOfMalesData
-      yearRange = getYearRange(shareOfMalesData)
       chartTitle = 'Share of male employees'
       currentLabel = 'Share of Males'
     } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
       chartData = shareOfFemalesData
-      yearRange = getYearRange(shareOfFemalesData)
       chartTitle = 'Share of female employees'
       currentLabel = 'Share of Females'
     } else if (genderComparisonData.length > 0) {
       // Bar chart view
       chartData = barChartData
-      yearRange = getYearRange(genderComparisonData)
       chartTitle = 'Gender distribution of startup workers'
       currentLabel = 'Employees'
     } else {
@@ -1280,8 +1276,7 @@ const ExploreData = () => {
       ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
     }))
     
-    // Determine year range and chart title based on view
-    let yearRange = ''
+    // Determine chart title based on view
     let chartTitle = ''
     let chartData: any[] = []
     let currentLabel = ''
@@ -1289,18 +1284,15 @@ const ExploreData = () => {
     
     if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
       chartData = shareOfFinnishData
-      yearRange = getYearRange(shareOfFinnishData)
       chartTitle = 'Share of Finnish background employees'
       currentLabel = 'Share of Finnish'
     } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
       chartData = shareOfForeignData
-      yearRange = getYearRange(shareOfForeignData)
       chartTitle = 'Share of foreign background employees'
       currentLabel = 'Share of Foreign'
     } else if (immigrationComparisonData.length > 0) {
       // Bar chart view
       chartData = barChartData
-      yearRange = getYearRange(immigrationComparisonData)
       chartTitle = 'Immigration status'
       currentLabel = 'Employees'
     } else {
@@ -2307,13 +2299,11 @@ const ExploreData = () => {
         chartData = shareOfMalesData
         currentLabel = 'Share of Males'
         isRevenueValue = false
-        const yearRange = getYearRange(chartData)
         chartTitle = 'Share of male employees'
       } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
         chartData = shareOfFemalesData
         currentLabel = 'Share of Females'
         isRevenueValue = false
-        const yearRange = getYearRange(chartData)
         chartTitle = 'Share of female employees'
       } else if (genderComparisonData.length > 0) {
         // Bar chart view with toggles
@@ -2327,13 +2317,11 @@ const ExploreData = () => {
         chartData = shareOfFinnishData
         currentLabel = 'Share of Finnish'
         isRevenueValue = false
-        const yearRange = getYearRange(chartData)
         chartTitle = 'Share of Finnish background employees'
       } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
         chartData = shareOfForeignData
         currentLabel = 'Share of Foreign'
         isRevenueValue = false
-        const yearRange = getYearRange(chartData)
         chartTitle = 'Share of foreign background employees'
       } else if (immigrationComparisonData.length > 0) {
         // Bar chart view with toggles
@@ -3274,8 +3262,7 @@ const ExploreData = () => {
                   
                   const genderAnalysisText = getGenderAnalysis()
                   
-                  // Determine year range and chart title based on view
-                  let yearRange = ''
+                  // Determine chart title based on view
                   let chartTitle = ''
                   let chartData: any[] = []
                   let currentLabel = ''
@@ -3290,18 +3277,15 @@ const ExploreData = () => {
                   
                   if (genderShareView === 'male-share' && shareOfMalesData.length > 0) {
                     chartData = shareOfMalesData
-                    yearRange = getYearRange(shareOfMalesData)
                     chartTitle = 'Share of male employees'
                     currentLabel = 'Share of Males'
                   } else if (genderShareView === 'female-share' && shareOfFemalesData.length > 0) {
                     chartData = shareOfFemalesData
-                    yearRange = getYearRange(shareOfFemalesData)
                     chartTitle = 'Share of female employees'
                     currentLabel = 'Share of Females'
                   } else if (genderComparisonData.length > 0) {
                     // Bar chart view
                     chartData = barChartData
-                    yearRange = getYearRange(genderComparisonData)
                       chartTitle = 'Gender distribution of startup workers'
                     currentLabel = 'Employees'
                   } else {
@@ -3609,8 +3593,7 @@ const ExploreData = () => {
                     ...(showForeignBar ? { Foreign: row['Foreign'] } : {})
                   }))
                   
-                  // Determine year range and chart title based on view
-                  let yearRange = ''
+                  // Determine chart title based on view
                   let chartTitle = ''
                   let chartData: any[] = []
                   let currentLabel = ''
@@ -3618,18 +3601,15 @@ const ExploreData = () => {
                   
                   if (immigrationShareView === 'finnish-share' && shareOfFinnishData.length > 0) {
                     chartData = shareOfFinnishData
-                    yearRange = getYearRange(shareOfFinnishData)
                     chartTitle = 'Share of Finnish background employees'
                     currentLabel = 'Share of Finnish'
                   } else if (immigrationShareView === 'foreign-share' && shareOfForeignData.length > 0) {
                     chartData = shareOfForeignData
-                    yearRange = getYearRange(shareOfForeignData)
                     chartTitle = 'Share of foreign background employees'
                     currentLabel = 'Share of Foreign'
                   } else if (immigrationComparisonData.length > 0) {
                     // Bar chart view
                     chartData = barChartData
-                    yearRange = getYearRange(immigrationComparisonData)
                       chartTitle = 'Immigration status'
                     currentLabel = 'Employees'
                   } else {
