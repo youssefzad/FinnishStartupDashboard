@@ -3,6 +3,9 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import ChartById from './ChartById'
 import { isValidChartId, getAllChartIds, chartRegistry, type ChartId } from '../config/chartRegistry'
+// Import global CSS to ensure theme variables are available
+import '../App.css'
+import '../styles/fsc-theme.css'
 import './ChartEmbedPage.css'
 
 function ChartEmbedContent() {
@@ -27,58 +30,61 @@ function ChartEmbedContent() {
     document.documentElement.setAttribute('data-theme', effectiveTheme)
   }, [effectiveTheme])
 
-  // PostMessage height updates to parent with throttling
+  // Robust PostMessage height updates for production embeds
   useEffect(() => {
     if (!containerRef.current || !chartId) return
 
+    // Ensure chartId is exactly the route param (string, validated)
+    const exactChartId: string = chartId
+
     let lastSentHeight = 0
-    let throttleTimeout: ReturnType<typeof setTimeout> | null = null
-    const THROTTLE_MS = 100 // Max 10 messages per second
+    let rafId: number | null = null
     let resizeObserver: ResizeObserver | null = null
     let isPaused = false
 
+    // Measure height from the single wrapper element that contains ALL content
     const measureHeight = (): number => {
       if (!containerRef.current) return 0
       
-      // Measure height using max of multiple sources
-      const docHeight = Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-        containerRef.current.scrollHeight
-      )
+      // Use scrollHeight of the container (includes all content: title, chart, buttons, table, source)
+      const height = containerRef.current.scrollHeight
       
-      return docHeight
+      // Round to ensure it's an integer
+      return Math.round(height)
     }
 
+    // Send height message to parent iframe
     const sendHeight = () => {
-      if (!containerRef.current || !chartId || isPaused) return
+      if (!containerRef.current || !exactChartId || isPaused) return
 
       const height = measureHeight()
       
-      // Only send if height changed significantly (avoid noise)
-      if (Math.abs(height - lastSentHeight) < 2) return
+      // Only send if height actually changed (avoid spam)
+      if (height === lastSentHeight) return
       
       lastSentHeight = height
 
+      // Only send if we're in an iframe
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({
           type: 'FSC_CHART_HEIGHT',
-          chartId,
-          height
+          chartId: exactChartId,
+          height: height
         }, '*')
       }
     }
 
+    // Throttle using requestAnimationFrame (more reliable than setTimeout)
     const throttledSendHeight = () => {
-      if (throttleTimeout || isPaused) return
+      if (rafId !== null || isPaused) return
       
-      throttleTimeout = setTimeout(() => {
+      rafId = requestAnimationFrame(() => {
         sendHeight()
-        throttleTimeout = null
-      }, THROTTLE_MS)
+        rafId = null
+      })
     }
 
-    // Pause/resume based on modal state
+    // Pause/resume based on modal state (embed modal should pause resizing)
     const checkModalState = () => {
       const modalOpen = document.querySelector('.embed-modal-overlay') !== null
       if (modalOpen && !isPaused) {
@@ -87,35 +93,60 @@ function ChartEmbedContent() {
         if (resizeObserver) {
           resizeObserver.disconnect()
         }
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId)
+          rafId = null
+        }
       } else if (!modalOpen && isPaused) {
         // Resume: reconnect observers
         isPaused = false
         if (resizeObserver && containerRef.current) {
           resizeObserver.observe(containerRef.current)
-          // Don't observe body/documentElement to avoid jittering
         }
         // Send current height after resuming
-        setTimeout(() => sendHeight(), 100)
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            sendHeight()
+          })
+        })
       }
     }
 
-    // Send initial height after render (use double RAF for fonts/images)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setTimeout(() => sendHeight(), 0)
-      })
-    })
-
-    // Use ResizeObserver for height changes - only observe container, not body/documentElement
+    // Use ResizeObserver on the single wrapper element
     resizeObserver = new ResizeObserver(() => {
       throttledSendHeight()
     })
 
-    resizeObserver.observe(containerRef.current)
-    // Don't observe body/documentElement - they cause jittering when modal opens
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
 
     // Check modal state periodically
     const modalCheckInterval = setInterval(checkModalState, 100)
+
+    // Send initial height after first paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        sendHeight()
+      })
+    })
+
+    // Send height after fonts load (critical for production where fonts load async)
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            sendHeight()
+          })
+        })
+      }).catch(() => {
+        // Fallback if fonts.ready fails
+        setTimeout(() => sendHeight(), 500)
+      })
+    } else {
+      // Fallback for browsers without document.fonts.ready
+      setTimeout(() => sendHeight(), 500)
+    }
 
     // Listen to window resize as fallback
     const handleResize = () => {
@@ -123,9 +154,13 @@ function ChartEmbedContent() {
     }
     window.addEventListener('resize', handleResize)
 
-    // Send height on window load (fonts/images loaded)
+    // Send height on window load (images and other resources)
     const handleLoad = () => {
-      setTimeout(() => sendHeight(), 100)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          sendHeight()
+        })
+      })
     }
     window.addEventListener('load', handleLoad)
 
@@ -136,8 +171,8 @@ function ChartEmbedContent() {
       clearInterval(modalCheckInterval)
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('load', handleLoad)
-      if (throttleTimeout) {
-        clearTimeout(throttleTimeout)
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
       }
     }
   }, [chartId])

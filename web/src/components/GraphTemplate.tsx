@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import EmbedModal from './EmbedModal'
 import type { ChartId } from '../config/chartRegistry'
@@ -128,6 +128,21 @@ interface GraphTemplateProps {
 
 const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFilterChange, chartId, embedMode = false }) => {
   const [showEmbedModal, setShowEmbedModal] = useState(false)
+  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark')
+  
+  // Detect theme from document attribute (works in both main site and embeds)
+  useEffect(() => {
+    const updateTheme = () => {
+      const themeAttr = document.documentElement.getAttribute('data-theme')
+      setEffectiveTheme(themeAttr === 'light' ? 'light' : 'dark')
+    }
+    updateTheme()
+    // Watch for theme changes
+    const observer = new MutationObserver(updateTheme)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
+  
   const {
     data,
     title,
@@ -312,16 +327,16 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                 )}
                 <XAxis 
                   dataKey="name" 
-                  stroke={chartColors.axis}
-                  tick={{ fill: chartColors.tick, fontSize: 10 }}
+                  stroke={chartColors.axis || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)')}
+                  tick={{ fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'), fontSize: 10 }}
                   angle={-45}
                   textAnchor="end"
                   height={40}
                   interval={getXAxisInterval()}
                 />
                 <YAxis 
-                  stroke={chartColors.axis}
-                  tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 9 : 10 }}
+                  stroke={chartColors.axis || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)')}
+                  tick={{ fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'), fontSize: windowWidth <= 640 ? 9 : 10 }}
                   width={windowWidth <= 640 ? (yAxisConfig.width || 35) : undefined}
                   tickFormatter={yAxisConfig.formatter}
                   domain={yAxisConfig.domain}
@@ -331,7 +346,7 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                     position: 'insideLeft',
                     style: { 
                       textAnchor: 'middle',
-                      fill: chartColors.tick,
+                      fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'),
                       fontSize: windowWidth <= 640 ? 10 : 11,
                       opacity: 0.7
                     }

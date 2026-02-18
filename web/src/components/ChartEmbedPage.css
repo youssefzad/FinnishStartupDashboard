@@ -12,6 +12,19 @@ body:has(.chart-embed-container) {
   margin: 0;
 }
 
+/* Ensure embed pages have proper theme CSS variables */
+.chart-embed-container[data-theme="dark"],
+.chart-embed-container:has([data-theme="dark"]) {
+  background: var(--bg-primary, #000000);
+  color: var(--text-primary, #ffffff);
+}
+
+.chart-embed-container[data-theme="light"],
+.chart-embed-container:has([data-theme="light"]) {
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1a1a1a);
+}
+
 .chart-embed-container.compact {
   padding: 0.5rem;
 }
