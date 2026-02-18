@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { ThemeProvider } from '../contexts/ThemeContext'
 import ChartById from './ChartById'
 import { isValidChartId, getAllChartIds, chartRegistry, type ChartId } from '../config/chartRegistry'
 // Import global CSS to ensure theme variables are available
@@ -27,11 +26,23 @@ function ChartEmbedContent() {
       : 'dark' // Default to dark for embeds when no theme param is provided
 
   // Apply theme to document AND container (ensures CSS variables resolve correctly)
+  // This runs AFTER ThemeContext's useEffect to ensure embed theme takes precedence
   useEffect(() => {
+    // Use a small delay to ensure this runs after ThemeContext's useEffect
+    const timeoutId = setTimeout(() => {
+      document.documentElement.setAttribute('data-theme', embedTheme)
+      if (containerRef.current) {
+        containerRef.current.setAttribute('data-theme', embedTheme)
+      }
+    }, 0)
+    
+    // Also set immediately to prevent flash
     document.documentElement.setAttribute('data-theme', embedTheme)
     if (containerRef.current) {
       containerRef.current.setAttribute('data-theme', embedTheme)
     }
+    
+    return () => clearTimeout(timeoutId)
   }, [embedTheme])
 
   // Robust PostMessage height updates for production embeds
@@ -332,10 +343,8 @@ function ChartEmbedContent() {
 }
 
 export default function ChartEmbedPage() {
-  return (
-    <ThemeProvider>
-      <ChartEmbedContent />
-    </ThemeProvider>
-  )
+  // Don't wrap in ThemeProvider - we're already wrapped by App's ThemeProvider
+  // ChartEmbedContent handles its own theme via URL params and sets data-theme directly
+  return <ChartEmbedContent />
 }
 
