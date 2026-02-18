@@ -13,9 +13,10 @@ interface ChartByIdProps {
   onViewChange?: (view: string) => void
   onToggleBar?: (bar: 'male' | 'female' | 'finnish' | 'foreign', visible: boolean) => void
   onDebugInfo?: (info: { chartId: string; filter: string; columnUsed: string }) => void
+  theme?: 'light' | 'dark' // Explicit theme prop for embed mode
 }
 
-export default function ChartById({ chartId, params = {}, embedMode = false, onConfigReady, onFilterChange, onViewChange, onToggleBar, onDebugInfo }: ChartByIdProps) {
+export default function ChartById({ chartId, params = {}, embedMode = false, onConfigReady, onFilterChange, onViewChange, onToggleBar, onDebugInfo, theme }: ChartByIdProps) {
   const [config, setConfig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,10 +66,12 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
       const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200
 
       // Build config with params
+      // Use explicit theme prop if provided (for embeds), otherwise use params.theme or default
+      const effectiveTheme = theme || params.theme || 'dark'
       const builtConfig = entry.buildConfig(data, {
         ...params,
         windowWidth,
-        theme: params.theme || 'dark',
+        theme: effectiveTheme,
         filter: params.filter || 'all',
         view: params.view || 'none',
         showMaleBar: params.showMaleBar !== 'false',
@@ -141,6 +144,9 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
 
   const entry = chartRegistry[chartId]
 
+  // Get effective theme for passing to templates (ensure it's 'light' | 'dark')
+  const effectiveTheme: 'light' | 'dark' = theme || (params.theme === 'light' || params.theme === 'dark' ? params.theme : 'dark')
+
   if (entry.kind === 'graph') {
     return (
       <GraphTemplate
@@ -152,6 +158,7 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
           }
         }}
         embedMode={embedMode}
+        theme={embedMode ? effectiveTheme : undefined}
       />
     )
   } else {
@@ -165,6 +172,7 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
           }
         }}
         embedMode={embedMode}
+        theme={embedMode ? effectiveTheme : undefined}
       />
     )
   }

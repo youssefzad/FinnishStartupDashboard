@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import EmbedModal from './EmbedModal'
 import type { ChartId } from '../config/chartRegistry'
@@ -117,24 +117,17 @@ interface BarChartTemplateProps {
   onFilterChange?: (value: string) => void // Reserved for future use
   chartId?: ChartId // Optional: for embed functionality
   embedMode?: boolean // Optional: if true, use single-column layout and hide insight panel
+  theme?: 'light' | 'dark' // Optional: explicit theme for embed mode (single source of truth)
 }
 
-const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue = '', chartId, embedMode = false }) => {
+const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue = '', chartId, embedMode = false, theme }) => {
   const [showEmbedModal, setShowEmbedModal] = useState(false)
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark')
   
-  // Detect theme from document attribute (works in both main site and embeds)
-  useEffect(() => {
-    const updateTheme = () => {
-      const themeAttr = document.documentElement.getAttribute('data-theme')
-      setEffectiveTheme(themeAttr === 'light' ? 'light' : 'dark')
-    }
-    updateTheme()
-    // Watch for theme changes
-    const observer = new MutationObserver(updateTheme)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => observer.disconnect()
-  }, [])
+  // Use explicit theme prop if provided (embed mode), otherwise detect from document
+  const effectiveTheme: 'light' | 'dark' = theme || (() => {
+    const themeAttr = document.documentElement.getAttribute('data-theme')
+    return themeAttr === 'light' ? 'light' : 'dark'
+  })()
   
   const {
     data,
@@ -250,16 +243,16 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis 
                     dataKey="name" 
-                    stroke={chartColors.axis || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)')}
-                    tick={{ fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'), fontSize: 10 }}
+                    stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                    tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: 10 }}
                     angle={-45}
                     textAnchor="end"
                     height={80}
                     interval={getXAxisInterval()}
                   />
                   <YAxis 
-                    stroke={chartColors.axis || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)')}
-                    tick={{ fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'), fontSize: windowWidth <= 640 ? 9 : 10 }}
+                    stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                    tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: windowWidth <= 640 ? 9 : 10 }}
                     width={windowWidth <= 640 ? (yAxisConfig.width || 35) : undefined}
                     tickFormatter={yAxisConfig.formatter}
                   />
@@ -293,16 +286,16 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis 
                     dataKey="name" 
-                    stroke={chartColors.axis || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)')}
-                    tick={{ fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'), fontSize: 10 }}
+                    stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                    tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: 10 }}
                     angle={-45}
                     textAnchor="end"
                     height={80}
                     interval={getXAxisInterval()}
                   />
                   <YAxis 
-                    stroke={chartColors.axis || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)')}
-                    tick={{ fill: chartColors.tick || (effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)'), fontSize: 10 }}
+                    stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                    tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: 10 }}
                     tickFormatter={yAxisConfig.formatter}
                   />
                   <Tooltip 

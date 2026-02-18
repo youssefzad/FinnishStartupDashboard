@@ -7,22 +7,21 @@ body:has(.chart-embed-container) {
 .chart-embed-container {
   min-height: 400px;
   padding: 1rem;
-  background: var(--bg-primary, #000000);
-  color: var(--text-primary, #ffffff);
   margin: 0;
+  /* Theme variables will be set by data-theme attribute */
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-/* Ensure embed pages have proper theme CSS variables */
-.chart-embed-container[data-theme="dark"],
-.chart-embed-container:has([data-theme="dark"]) {
-  background: var(--bg-primary, #000000);
-  color: var(--text-primary, #ffffff);
+/* Ensure embed background matches theme (no hardcoded defaults that override) */
+.chart-embed-container[data-theme="dark"] {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-.chart-embed-container[data-theme="light"],
-.chart-embed-container:has([data-theme="light"]) {
-  background: var(--bg-primary, #ffffff);
-  color: var(--text-primary, #1a1a1a);
+.chart-embed-container[data-theme="light"] {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .chart-embed-container.compact {

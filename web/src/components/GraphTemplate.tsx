@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import EmbedModal from './EmbedModal'
 import type { ChartId } from '../config/chartRegistry'
@@ -124,24 +124,17 @@ interface GraphTemplateProps {
   onFilterChange: (value: string) => void
   chartId?: ChartId // Optional: for embed functionality
   embedMode?: boolean // Optional: if true, use single-column layout and hide insight panel
+  theme?: 'light' | 'dark' // Optional: explicit theme for embed mode (single source of truth)
 }
 
-const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFilterChange, chartId, embedMode = false }) => {
+const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFilterChange, chartId, embedMode = false, theme }) => {
   const [showEmbedModal, setShowEmbedModal] = useState(false)
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark')
   
-  // Detect theme from document attribute (works in both main site and embeds)
-  useEffect(() => {
-    const updateTheme = () => {
-      const themeAttr = document.documentElement.getAttribute('data-theme')
-      setEffectiveTheme(themeAttr === 'light' ? 'light' : 'dark')
-    }
-    updateTheme()
-    // Watch for theme changes
-    const observer = new MutationObserver(updateTheme)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => observer.disconnect()
-  }, [])
+  // Use explicit theme prop if provided (embed mode), otherwise detect from document
+  const effectiveTheme: 'light' | 'dark' = theme || (() => {
+    const themeAttr = document.documentElement.getAttribute('data-theme')
+    return themeAttr === 'light' ? 'light' : 'dark'
+  })()
   
   const {
     data,
