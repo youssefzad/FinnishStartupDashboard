@@ -139,6 +139,9 @@
   margin-top: 6rem;
   width: 100%;
   animation: fadeInUp 0.8s ease-out 0.8s both;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .metrics-title {
@@ -149,6 +152,7 @@
   text-align: center;
   letter-spacing: -0.02em;
   text-shadow: 0 2px 20px rgba(165, 128, 242, 0.3);
+  width: 100%;
 }
 
 [data-theme="light"] .metrics-title {
@@ -350,6 +354,41 @@
   .hero-metrics {
     margin-top: 4rem;
   }
+  
+  /* Mobile grid layout - cards stack vertically */
+  .hero-metrics .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* Single column on very small screens */
+  @media (max-width: 640px) {
+    .hero-metrics .metric-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hero-metrics .metric-card {
+    padding: 0.875rem;
+  }
+  
+  .hero-metrics .metric-value {
+    font-size: 1.4rem;
+  }
+  
+  .hero-metrics .metric-label {
+    font-size: 0.7rem;
+  }
+  
+  .hero-metrics .metric-description {
+    font-size: 0.7rem;
+  }
+  
+  .hero-metrics .metric-trend {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+  }
 
   .key-figures {
     padding: 3rem 1rem;
@@ -396,20 +435,80 @@
   text-shadow: 0 2px 20px rgba(165, 128, 242, 0.2);
 }
 
-/* Metric Cards */
-.metric-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+/* Metric Cards Wrapper */
+.metric-cards-wrapper {
+  width: 100%;
   margin-bottom: 2rem;
+}
+
+/* Desktop: Centered grid with max-width */
+@media (min-width: 1024px) {
+  .metric-cards-wrapper {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
+    justify-content: center;
+    gap: 20px;
+    align-items: stretch;
+  }
+}
+
+/* Mobile/Tablet: Responsive grid that stacks cards */
+@media (max-width: 1023px) {
+  .metric-cards-wrapper {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  /* Single column on very small screens */
+  @media (max-width: 640px) {
+    .metric-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* Base styles for metric cards */
+.metric-cards {
+  width: 100%;
 }
 
 .metric-card {
   background: var(--bg-card);
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem; /* Reduced from 1.25rem */
   border: 1px solid var(--border-color);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Desktop: Allow overflow for wrapped text */
+@media (min-width: 1024px) {
+  .metric-card {
+    overflow: visible; /* Allow wrapped text to be fully visible */
+  }
+}
+
+/* Mobile: Prevent visual bleed */
+@media (max-width: 1023px) {
+  .metric-card {
+    overflow: hidden; /* Prevent visual bleed on mobile */
+  }
 }
 
 .metric-card:hover {
@@ -421,17 +520,80 @@
 .metric-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  gap: 1rem;
+  align-items: flex-start; /* align pill with top of label */
+  gap: 16px; /* Increased from 12px to move badge further right */
+  margin-bottom: 0.5rem; /* Reduced from 0.75rem */
+  min-width: 0; /* Important for flex overflow behavior */
+  flex-shrink: 0;
+}
+
+/* Desktop: Allow header to grow in height for wrapping labels */
+@media (min-width: 1024px) {
+  .metric-header {
+    height: auto;
+    min-height: 1.5rem;
+    align-items: flex-start; /* Keep items aligned to top */
+    overflow: visible; /* Ensure wrapped text is visible */
+  }
+}
+
+.metric-header:has(.metric-trend:empty),
+.metric-header:not(:has(.metric-trend)) {
+  justify-content: flex-start;
+}
+
+/* Ensure header maintains height even without trend - add invisible spacer */
+.metric-header:not(:has(.metric-trend)) {
+  position: relative;
+}
+
+.metric-header:not(:has(.metric-trend))::after {
+  content: '';
+  width: 0;
+  min-width: 0;
+  height: 1.5rem;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .metric-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem; /* Reduced from 0.75rem */
   font-weight: 500;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1; /* prevents extra ascent/leading */
+  padding-top: 1px; /* tiny optical alignment tweak */
+}
+
+/* Desktop: Allow label wrapping (max 2 lines) */
+@media (min-width: 1024px) {
+  .metric-label {
+    font-size: 0.7rem; /* Smaller font for better fit */
+    white-space: normal;
+    overflow: hidden; /* Use hidden with line-clamp for better control */
+    text-overflow: unset;
+    line-height: 1.1; /* Tight line height for better alignment */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word; /* Better word breaking */
+    hyphens: none; /* Prevent automatic hyphenation that breaks awkwardly */
+    /* Use line-clamp for exactly 2 lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-height: calc(1.1em * 2); /* Adjusted for tighter line height */
+    width: 100%;
+    padding-top: 1px; /* Maintain optical alignment */
+    /* Ensure it stays visible */
+    visibility: visible;
+    opacity: 1;
+  }
 }
 
 .metric-trend {
@@ -441,8 +603,17 @@
   border-radius: 8px;
   background: rgba(76, 175, 80, 0.2);
   color: #4caf50;
-  margin-left: auto;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  max-width: 45%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start; /* Always align to top */
+  margin-top: 0; /* Ensure it's at the very top */
 }
 
 .metric-trend.positive {
@@ -462,11 +633,19 @@
   margin-bottom: 0.25rem;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  flex-grow: 1;
+  min-height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .metric-description {
   font-size: 0.8rem;
   color: var(--text-secondary);
+  margin-top: auto;
+  text-align: center;
 }
 
 /* Dashboard Charts */
@@ -582,17 +761,29 @@
   }
 
   .metric-cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
     margin-bottom: 2rem;
   }
 
   .metric-card {
-    padding: 1rem;
+    padding: 0.875rem;
   }
 
   .metric-value {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+  }
+  
+  .metric-label {
+    font-size: 0.85rem;
+  }
+  
+  .metric-description {
+    font-size: 0.75rem;
+  }
+  
+  .metric-trend {
+    font-size: 0.75rem;
   }
 
   .metrics-title {

@@ -1,0 +1,71 @@
+/* Unicorns Chart Light Mode Styles */
+/* These styles ensure readability in light mode without affecting other charts */
+
+[data-theme="light"] .unicorns-chart-container .chart-card-title {
+  color: rgba(26, 26, 26, 0.95);
+}
+
+[data-theme="light"] .unicorns-chart-container .chart-context-text {
+  color: rgba(26, 26, 26, 0.85);
+}
+
+[data-theme="light"] .unicorns-chart-container .chart-context-text p {
+  color: rgba(26, 26, 26, 0.85);
+}
+
+/* Filter buttons in light mode - ensure readability */
+[data-theme="light"] .unicorns-chart-container .filter-button {
+  color: rgba(26, 26, 26, 0.85);
+  border-color: rgba(26, 26, 26, 0.2);
+}
+
+[data-theme="light"] .unicorns-chart-container .filter-button:hover {
+  border-color: rgba(26, 26, 26, 0.4);
+  background-color: rgba(26, 26, 26, 0.05);
+}
+
+[data-theme="light"] .unicorns-chart-container .filter-button.active {
+  border-color: rgba(165, 128, 242, 0.6);
+  background-color: rgba(165, 128, 242, 0.1);
+}
+
+[data-theme="light"] .unicorns-chart-container .filter-button.active .filter-label {
+  color: rgba(165, 128, 242, 0.9);
+}
+
+[data-theme="light"] .unicorns-chart-container .filter-button .filter-label {
+  color: rgba(26, 26, 26, 0.85);
+}
+
+/* Mobile Unicorns Chart - Fix container sizing and clipping */
+.unicorns-mobile-chart-wrapper {
+  overflow: visible !important;
+  min-height: auto !important;
+  height: auto !important;
+}
+
+@media (max-width: 768px) {
+  /* Override chart-wrapper-grid constraints for mobile Unicorns */
+  .unicorns-mobile-chart-wrapper {
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    /* Remove fixed height constraint - let it grow with content */
+    /* Override the min-height: 300px from .chart-wrapper-grid */
+  }
+  
+  /* Make ResponsiveContainer expand to fit its content */
+  .unicorns-mobile-chart-wrapper .recharts-responsive-container {
+    overflow: visible !important;
+  }
+  
+  .unicorns-mobile-chart-wrapper .recharts-wrapper {
+    overflow: visible !important;
+  }
+  
+  .unicorns-mobile-chart-wrapper .recharts-surface {
+    overflow: visible !important;
+  }
+}
+

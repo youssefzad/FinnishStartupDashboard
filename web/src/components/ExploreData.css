@@ -487,8 +487,14 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
 .chart-wrapper-grid {
   padding-bottom: 0;
   margin-bottom: 0;
+  margin-top: 0; /* Spacing handled by filters/buttons above via margin-bottom */
   min-height: 300px; /* Minimum height, can be larger for gender charts */
   overflow: hidden;
+}
+
+/* When filters are above chart, ensure proper spacing */
+.chart-column > .chart-filters-embed + .chart-wrapper-grid {
+  margin-top: 0; /* Filters already have margin-bottom */
 }
 
 /* Full-width charts - larger bottom margin */
@@ -556,6 +562,17 @@ body.use-fsc-header-hero .explore-data-page.use-new-hero-layout {
   gap: 0.75rem;
   flex-wrap: wrap;
   align-items: flex-start;
+  margin-bottom: 1rem; /* Add spacing below filters to separate from chart */
+}
+
+/* Embed mode filters - positioned above chart */
+.chart-filters-embed {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 1.5rem; /* Extra spacing for embed mode to prevent X-axis overlap */
 }
 
 .filter-button {

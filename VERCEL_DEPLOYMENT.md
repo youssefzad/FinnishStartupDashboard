@@ -66,11 +66,14 @@ Since your project is in the `web` subdirectory, make sure to:
 ## Environment Variables
 
 If your project uses Google Sheets API, add these in Vercel dashboard:
-- `VITE_GOOGLE_SHEET_ID`
-- `VITE_EMPLOYEES_GENDER_GID`
-- `VITE_RDI_GID`
+- `VITE_GOOGLE_SHEET_ID` (required)
+- `VITE_EMPLOYEES_GENDER_GID` (optional)
+- `VITE_RDI_GID` (optional)
+- `VITE_UNICORNS_GID` (optional)
 
-**Note**: Vite requires the `VITE_` prefix for environment variables to be accessible in the browser.
+**Note**: 
+- Vite requires the `VITE_` prefix for environment variables to be accessible in the browser.
+- Missing optional env vars (like `VITE_UNICORNS_GID`) will gracefully skip data loading - the app will work without those datasets.
 
 ## Custom Domain (Optional)
 

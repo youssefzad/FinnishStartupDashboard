@@ -136,11 +136,12 @@ const useCounter = (targetValue: string, duration: number = 2000) => {
 }
 
 // Metric Card Component with animated counter
-const MetricCard = ({ label, value, trend, description }: { 
+const MetricCard = ({ label, value, trend, description, showTrend = true }: { 
   label: string
   value: string
   trend: string
-  description: string 
+  description: string
+  showTrend?: boolean
 }) => {
   const animatedValue = useCounter(value, 2000)
 
@@ -148,7 +149,9 @@ const MetricCard = ({ label, value, trend, description }: {
     <div className="metric-card">
       <div className="metric-header">
         <span className="metric-label">{label}</span>
-        <span className="metric-trend positive">{trend}</span>
+        {showTrend && trend && (
+          <span className="metric-trend positive">{trend}</span>
+        )}
       </div>
       <div className="metric-value">{animatedValue}</div>
       <div className="metric-description">{description}</div>
@@ -361,48 +364,61 @@ const LandingPage = () => {
           <div className="hero-metrics">
             <h2 className="metrics-title">Key Metrics</h2>
             {isLoadingMetrics ? (
-              <div className="metric-cards">
-                <div className="metric-card">
-                  <div className="metric-header">
-                    <span className="metric-label">Loading...</span>
+              <div className="metric-cards-wrapper">
+                <div className="metric-cards">
+                  <div className="metric-card">
+                    <div className="metric-header">
+                      <span className="metric-label">Loading...</span>
+                    </div>
+                    <div className="metric-value">-</div>
                   </div>
-                  <div className="metric-value">-</div>
                 </div>
               </div>
             ) : metrics ? (
-              <div className="metric-cards">
-                <MetricCard
-                  label="Startups"
-                  value={metrics.firms.formattedValue}
-                  trend={`${metrics.firms.growth >= 0 ? '+' : ''}${metrics.firms.growth.toFixed(1)}%`}
-                  description={String(metrics.firms.year)}
-                />
-                <MetricCard
-                  label="Revenue"
-                  value={metrics.revenue.formattedValue}
-                  trend={`${metrics.revenue.growth >= 0 ? '+' : ''}${metrics.revenue.growth.toFixed(1)}%`}
-                  description={String(metrics.revenue.year)}
-                />
-                <MetricCard
-                  label="Employees"
-                  value={metrics.employees.formattedValue}
-                  trend={`${metrics.employees.growth >= 0 ? '+' : ''}${metrics.employees.growth.toFixed(1)}%`}
-                  description={String(metrics.employees.year)}
-                />
-                <MetricCard
-                  label="R&D-INVESTMENTS"
-                  value={metrics.rdi.formattedValue}
-                  trend={`${metrics.rdi.growth >= 0 ? '+' : ''}${metrics.rdi.growth.toFixed(1)}%`}
-                  description={String(metrics.rdi.year)}
-                />
+              <div className="metric-cards-wrapper">
+                <div className="metric-cards">
+                  <MetricCard
+                    label="Startups"
+                    value={metrics.firms.formattedValue}
+                    trend={`${metrics.firms.growth >= 0 ? '+' : ''}${metrics.firms.growth.toFixed(1)}%`}
+                    description={String(metrics.firms.year)}
+                  />
+                  <MetricCard
+                    label="Revenue"
+                    value={metrics.revenue.formattedValue}
+                    trend={`${metrics.revenue.growth >= 0 ? '+' : ''}${metrics.revenue.growth.toFixed(1)}%`}
+                    description={String(metrics.revenue.year)}
+                  />
+                  <MetricCard
+                    label="Employees"
+                    value={metrics.employees.formattedValue}
+                    trend={`${metrics.employees.growth >= 0 ? '+' : ''}${metrics.employees.growth.toFixed(1)}%`}
+                    description={String(metrics.employees.year)}
+                  />
+                  <MetricCard
+                    label="R&D-INVESTMENTS"
+                    value={metrics.rdi.formattedValue}
+                    trend={`${metrics.rdi.growth >= 0 ? '+' : ''}${metrics.rdi.growth.toFixed(1)}%`}
+                    description={String(metrics.rdi.year)}
+                  />
+                  <MetricCard
+                    label="Unicorns"
+                    value={metrics.unicorns.formattedValue}
+                    trend=""
+                    description={String(metrics.unicorns.year)}
+                    showTrend={false}
+                  />
+                </div>
               </div>
             ) : (
-              <div className="metric-cards">
-                <div className="metric-card">
-                  <div className="metric-header">
-                    <span className="metric-label">Data unavailable</span>
+              <div className="metric-cards-wrapper">
+                <div className="metric-cards">
+                  <div className="metric-card">
+                    <div className="metric-header">
+                      <span className="metric-label">Data unavailable</span>
+                    </div>
+                    <div className="metric-value">-</div>
                   </div>
-                  <div className="metric-value">-</div>
                 </div>
               </div>
             )}

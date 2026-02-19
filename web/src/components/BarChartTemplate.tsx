@@ -1,7 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import EmbedModal from './EmbedModal'
 import type { ChartId } from '../config/chartRegistry'
+
+// Helper to format valuation for table display
+function formatValuationForTable(value: number): string {
+  if (value >= 1000000000) {
+    const billions = value / 1000000000
+    return `€${billions.toFixed(billions >= 10 ? 1 : 2)}B`
+  } else if (value >= 1000000) {
+    const millions = value / 1000000
+    return `€${millions.toFixed(millions >= 10 ? 1 : 2)}M`
+  } else if (value >= 1000) {
+    const thousands = value / 1000
+    return `€${thousands.toFixed(1)}K`
+  }
+  return `€${value.toLocaleString()}`
+}
 
 // Type definitions for bar chart configuration
 export interface BarSeries {
@@ -35,6 +50,18 @@ export interface BarChartFiltersConfig {
 export interface YAxisConfig {
   formatter: (value: number) => string
   width?: number
+  interval?: number | 'preserveStartEnd' | 'preserveStart' | 'preserveEnd' // Optional: for category Y-axis (horizontal bars)
+  tickFormatter?: (value: string | number) => string // Optional: for category Y-axis
+  fontSize?: number // Optional: override default font size
+}
+
+export interface XAxisConfig {
+  interval?: number | 'preserveStartEnd' | 'preserveStart' | 'preserveEnd'
+  tickFormatter?: (value: string) => string
+  height?: number
+  angle?: number
+  fontSize?: number
+  tickMargin?: number // Optional: spacing for ticks
 }
 
 export interface TooltipConfig {
@@ -51,6 +78,9 @@ export interface BarChartTemplateConfig {
   
   // Chart type
   chartType: 'bar' | 'area' // 'bar' for comparison, 'area' for share views
+  
+  // Bar chart layout (for bar chart type)
+  barLayout?: 'vertical' | 'horizontal' // 'vertical' = bars go up, 'horizontal' = bars go right
   
   // Bar series configuration (for bar chart type)
   barSeries?: BarSeries[]
@@ -69,8 +99,19 @@ export interface BarChartTemplateConfig {
   // Filters and toggles
   filtersConfig?: BarChartFiltersConfig
   
+  // Top N control (optional)
+  topNConfig?: {
+    enabled: boolean
+    options: Array<{ value: number; label: string }>
+    defaultTopN: number
+    onTopNChange?: (topN: number) => void
+  }
+  
   // Y-axis configuration
   yAxisConfig: YAxisConfig
+  
+  // X-axis configuration (optional, for custom X-axis behavior)
+  xAxisConfig?: XAxisConfig
   
   // Tooltip configuration
   tooltipConfig: TooltipConfig
@@ -109,6 +150,8 @@ export interface BarChartTemplateConfig {
   renderTable?: () => React.ReactNode
   tableData?: Array<{ name: string; [key: string]: any }>
   tableColumns?: Array<{ key: string; label: string }>
+  tableFirstColumnLabel?: string // Label for the first column (default: "Year")
+  tableHiddenKeys?: string[] // Keys to hide from table columns (default: [])
 }
 
 interface BarChartTemplateProps {
@@ -123,11 +166,54 @@ interface BarChartTemplateProps {
 const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue = '', chartId, embedMode = false, theme }) => {
   const [showEmbedModal, setShowEmbedModal] = useState(false)
   
-  // Use explicit theme prop if provided (embed mode), otherwise detect from document
-  const effectiveTheme: 'light' | 'dark' = theme || (() => {
-    const themeAttr = document.documentElement.getAttribute('data-theme')
-    return themeAttr === 'light' ? 'light' : 'dark'
-  })()
+  // Theme state - initialized from document/prop and updated via MutationObserver
+  const getInitialTheme = (): 'light' | 'dark' => {
+    // If theme prop is provided, use it
+    if (theme) return theme
+    // Otherwise, read from document
+    if (typeof document !== 'undefined') {
+      const themeAttr = document.documentElement.getAttribute('data-theme')
+      return themeAttr === 'light' ? 'light' : 'dark'
+    }
+    return 'dark'
+  }
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(getInitialTheme)
+
+  // Watch for theme changes via MutationObserver (only if theme prop is not provided)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    // If theme prop is provided, use it directly and don't watch document
+    if (theme) {
+      setCurrentTheme(theme)
+      return
+    }
+
+    // Create MutationObserver to watch for data-theme attribute changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          const themeAttr = document.documentElement.getAttribute('data-theme')
+          const newTheme = themeAttr === 'light' ? 'light' : 'dark'
+          setCurrentTheme(newTheme)
+        }
+      })
+    })
+
+    // Observe changes to the data-theme attribute on the html element
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    })
+
+    // Cleanup observer on unmount
+    return () => {
+      observer.disconnect()
+    }
+  }, [theme]) // Re-run if theme prop changes
+
+  // Use state-based theme (not reading from document directly during render)
+  const effectiveTheme: 'light' | 'dark' = theme || currentTheme
   
   const {
     data,
@@ -137,9 +223,12 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
     barSeries = [],
     areaConfig,
     filtersConfig,
+    topNConfig,
     yAxisConfig,
+    xAxisConfig,
     tooltipConfig,
     contextText,
+    barLayout = 'vertical', // Default to vertical (current behavior)
     onShowTable,
     onFullscreen,
     showTable = false,
@@ -149,15 +238,48 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
     isRevenueValue = false,
     renderTable,
     tableData,
-    tableColumns
+    tableColumns,
+    tableFirstColumnLabel = 'Year',
+    tableHiddenKeys = []
   } = config
 
-  // Get margins based on screen size
-  const getMargins = () => {
-    if (windowWidth <= 640) {
-      return { bottom: 50, top: 20, right: 8, left: 10 }
+  // Determine if horizontal bars are being used (for responsive height calculation)
+  const isHorizontalBarsForHeight = barLayout === 'horizontal'
+
+  // Get margins based on screen size and bar layout
+  const getMargins = (isHorizontal: boolean = false) => {
+    if (isHorizontal) {
+      // Horizontal bars: increased left margin for Y-axis labels (firm names), more bottom for X-axis values
+      if (windowWidth <= 640) {
+        return { bottom: 50, top: 10, right: 8, left: 10 }
+      }
+      return { bottom: 50, top: 10, right: 20, left: 10 }
     }
-    return { bottom: 50, top: 20, right: 20, left: 20 }
+    // Vertical bars (default): bottom margin must accommodate X-axis height to prevent label clipping
+    const xAxisHeight = xAxisConfig?.height ?? (windowWidth <= 640 ? 100 : 80)
+    const minBottomMargin = xAxisHeight + 20 // Ensure labels aren't clipped (height + padding)
+    const defaultBottom = windowWidth <= 640 ? 50 : 50
+    if (windowWidth <= 640) {
+      return { bottom: Math.max(defaultBottom, minBottomMargin), top: 20, right: 8, left: 10 }
+    }
+    return { bottom: Math.max(defaultBottom, minBottomMargin), top: 20, right: 20, left: 20 }
+  }
+
+  // Calculate responsive height - for horizontal bars, need more height to fit all items
+  const getChartHeight = () => {
+    if (isHorizontalBarsForHeight && windowWidth <= 768) {
+      // For horizontal bars on mobile/tablet: ensure enough height for all items
+      // Each bar needs ~34px, add padding for margins (top/bottom) and axis labels (X-axis at bottom)
+      // Formula: base height + (items * item height) + axis padding
+      // For 20 items: Math.max(520, 20 * 34 + 220) = Math.max(520, 900) = 900px
+      return Math.max(520, data.length * 34 + 220)
+    }
+    // For vertical bars, ensure enough height for all labels
+    if (!isHorizontalBarsForHeight && data.length > 10) {
+      // Increase height for many items to ensure all labels are visible
+      return Math.max(400, 300 + (data.length - 10) * 15)
+    }
+    return 400
   }
 
   // Render data table if needed
@@ -173,8 +295,8 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
         <table className="chart-data-table">
           <thead>
             <tr>
-              <th>Year</th>
-              {tableColumns?.map(col => (
+              <th>{tableFirstColumnLabel}</th>
+              {tableColumns?.filter(col => !tableHiddenKeys.includes(col.key)).map(col => (
                 <th key={col.key}>{col.label}</th>
               ))}
             </tr>
@@ -183,14 +305,34 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
             {tableData.map((row, index) => (
               <tr key={index}>
                 <td>{row.name}</td>
-                {tableColumns?.map(col => (
-                  <td key={col.key}>
-                    {isRevenueValue 
-                      ? `€${((row[col.key] as number) / 1000000000).toFixed(2)}B`
-                      : (row[col.key] as number).toLocaleString()
-                    }
-                  </td>
-                ))}
+                {tableColumns?.filter(col => !tableHiddenKeys.includes(col.key)).map(col => {
+                  const cellValue = row[col.key]
+                  // Handle valuation column specially
+                  if (col.key === 'value' && isRevenueValue) {
+                    const numValue = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue))
+                    return (
+                      <td key={col.key}>
+                        {formatValuationForTable(numValue)}
+                      </td>
+                    )
+                  }
+                  // Handle boolean columns (isFinnish, isFinnishBackground) - they're already formatted as Yes/No
+                  if (typeof cellValue === 'string') {
+                    return <td key={col.key}>{cellValue}</td>
+                  }
+                  // Handle numeric columns
+                  if (typeof cellValue === 'number') {
+                    return (
+                      <td key={col.key}>
+                        {isRevenueValue 
+                          ? formatValuationForTable(cellValue)
+                          : cellValue.toLocaleString()
+                        }
+                      </td>
+                    )
+                  }
+                  return <td key={col.key}>{String(cellValue)}</td>
+                })}
               </tr>
             ))}
           </tbody>
@@ -228,12 +370,26 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
                   <span className="filter-label">{button.label}</span>
                 </button>
               ))}
+              {topNConfig?.enabled && (
+                <>
+                  <div style={{ width: '100%', height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
+                  {topNConfig.options.map((option, index) => (
+                    <button
+                      key={index}
+                      className={`filter-button ${topNConfig.defaultTopN === option.value ? 'active' : ''}`}
+                      onClick={() => topNConfig.onTopNChange?.(option.value)}
+                    >
+                      <span className="filter-label">{option.label}</span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
           <div className="chart-wrapper chart-wrapper-grid">
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={getChartHeight()}>
               {chartType === 'area' && areaConfig ? (
-                <AreaChart data={data} margin={getMargins()}>
+                <AreaChart data={data} margin={getMargins(false)}>
                   <defs>
                     <linearGradient id={areaConfig.gradientId} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={areaConfig.gradientStartColor} stopOpacity={areaConfig.gradientStartOpacity} />
@@ -263,6 +419,7 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
                       borderRadius: '8px',
                       color: chartColors.tooltipText
                     }}
+                    cursor={false}
                     formatter={(value: number, _name: string) => tooltipConfig.formatter(value, dataLabel)}
                   />
                   <Area 
@@ -274,50 +431,142 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={data} margin={getMargins()}>
-                  <defs>
-                    {barSeries.map(series => (
-                      <linearGradient key={series.gradientId} id={series.gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={series.gradientStartColor} stopOpacity={series.gradientStartOpacity} />
-                        <stop offset="100%" stopColor={series.gradientEndColor} stopOpacity={series.gradientEndOpacity} />
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
-                    tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: 10 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval={getXAxisInterval()}
-                  />
-                  <YAxis 
-                    stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
-                    tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: 10 }}
-                    tickFormatter={yAxisConfig.formatter}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: chartColors.tooltipBg, 
-                      border: 'none', 
-                      borderRadius: '8px',
-                      color: chartColors.tooltipText
-                    }}
-                    formatter={(value: number, name: string) => tooltipConfig.formatter(value, name)}
-                  />
-                  {barSeries.map(series => 
-                    series.visible && (
-                      <Bar 
-                        key={series.dataKey}
-                        dataKey={series.dataKey} 
-                        fill={`url(#${series.gradientId})`}
-                        radius={[4, 4, 0, 0]}
-                      />
+                (() => {
+                  // Runtime safety: guard against empty data
+                  if (!data || data.length === 0) {
+                    return null
+                  }
+
+                  // In Recharts: 
+                  // layout="horizontal" (or omitted) => bars go UP (vertical bars) - DEFAULT
+                  // layout="vertical" => bars go RIGHT (horizontal bars)
+                  // So: if we want horizontal bars (left-right), use layout="vertical"
+                  const isHorizontalBars = barLayout === 'horizontal'
+                  
+                  try {
+                    return (
+                      <BarChart 
+                        data={data} 
+                        margin={getMargins(isHorizontalBars)}
+                        {...(isHorizontalBars ? { layout: 'vertical' } : { layout: 'horizontal' })}
+                      >
+                        <defs>
+                          {barSeries.map(series => {
+                            // For horizontal bars (left-right), gradient goes left to right
+                            // For vertical bars (up-down), gradient goes top to bottom
+                            const gradientDirection = isHorizontalBars
+                              ? { x1: "0", y1: "0", x2: "1", y2: "0" }
+                              : { x1: "0", y1: "0", x2: "0", y2: "1" }
+                            // For horizontal bars: reverse gradient so it fades from transparent (start) to solid (end)
+                            // For vertical bars: keep original (solid at top, transparent at bottom)
+                            const stops = isHorizontalBars ? [
+                              <stop key="start" offset="0%" stopColor={series.gradientStartColor} stopOpacity={series.gradientEndOpacity} />,
+                              <stop key="end" offset="100%" stopColor={series.gradientEndColor} stopOpacity={series.gradientStartOpacity} />
+                            ] : [
+                              <stop key="start" offset="0%" stopColor={series.gradientStartColor} stopOpacity={series.gradientStartOpacity} />,
+                              <stop key="end" offset="100%" stopColor={series.gradientEndColor} stopOpacity={series.gradientEndOpacity} />
+                            ]
+                            
+                            return (
+                              <linearGradient 
+                                key={series.gradientId} 
+                                id={series.gradientId} 
+                                {...gradientDirection}
+                              >
+                                {stops}
+                              </linearGradient>
+                            )
+                          })}
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                        {isHorizontalBars ? (
+                          <>
+                            {/* Horizontal bars (left-right): X-axis is the value axis (bottom), Y-axis is the name axis (left) */}
+                            <XAxis 
+                              type="number"
+                              stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                              tick={{ 
+                                fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', 
+                                fontSize: windowWidth <= 640 ? 9 : 10
+                              }}
+                              tickMargin={10}
+                              height={45}
+                              tickFormatter={yAxisConfig.formatter}
+                            />
+                            <YAxis 
+                              type="category"
+                              dataKey="name"
+                              stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                              tick={{ 
+                                fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', 
+                                fontSize: yAxisConfig.fontSize || xAxisConfig?.fontSize || (windowWidth <= 640 ? 9 : 10)
+                              }}
+                              width={yAxisConfig.width || (windowWidth <= 640 ? 115 : 100)}
+                              {...(yAxisConfig.interval !== undefined ? { interval: yAxisConfig.interval } : {})}
+                              {...(yAxisConfig.tickFormatter ? { tickFormatter: yAxisConfig.tickFormatter } : (xAxisConfig?.tickFormatter ? { tickFormatter: xAxisConfig.tickFormatter } : {}))}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            {/* Vertical bars (up-down): X-axis is the name axis (bottom), Y-axis is the value axis (left) */}
+                            <XAxis 
+                              type="category"
+                              dataKey="name" 
+                              stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                              tick={{ 
+                                fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', 
+                                fontSize: xAxisConfig?.fontSize || (windowWidth <= 640 ? 9 : 10)
+                              }}
+                              {...(xAxisConfig?.angle !== undefined ? { angle: xAxisConfig.angle } : { angle: windowWidth <= 640 ? -60 : -45 })}
+                              textAnchor="end"
+                              {...(xAxisConfig?.height !== undefined ? { height: xAxisConfig.height } : { height: windowWidth <= 640 ? 100 : 80 })}
+                              {...(xAxisConfig?.interval !== undefined ? { interval: xAxisConfig.interval } : { interval: getXAxisInterval() })}
+                              {...(xAxisConfig?.tickFormatter ? { tickFormatter: xAxisConfig.tickFormatter } : {})}
+                              {...(xAxisConfig?.tickMargin !== undefined ? { tickMargin: xAxisConfig.tickMargin } : {})}
+                            />
+                            <YAxis 
+                              type="number"
+                              stroke={effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+                              tick={{ fill: effectiveTheme === 'light' ? 'rgba(26, 26, 26, 0.7)' : 'rgba(255, 255, 255, 0.7)', fontSize: windowWidth <= 640 ? 9 : 10 }}
+                              width={windowWidth <= 640 ? (yAxisConfig.width || 35) : undefined}
+                              tickFormatter={yAxisConfig.formatter}
+                            />
+                          </>
+                        )}
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: chartColors.tooltipBg, 
+                            border: 'none', 
+                            borderRadius: '8px',
+                            color: chartColors.tooltipText
+                          }}
+                          cursor={false}
+                          formatter={(value: number, name: string) => {
+                            try {
+                              return tooltipConfig.formatter(value, name)
+                            } catch (error) {
+                              console.error('[BarChartTemplate] Tooltip formatter error:', error)
+                              return [String(value), name]
+                            }
+                          }}
+                        />
+                        {barSeries.map(series => 
+                          series.visible && (
+                            <Bar 
+                              key={series.dataKey}
+                              dataKey={series.dataKey} 
+                              fill={`url(#${series.gradientId})`}
+                              radius={isHorizontalBars ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+                            />
+                          )
+                        )}
+                      </BarChart>
                     )
-                  )}
-                </BarChart>
+                  } catch (error) {
+                    console.error('[BarChartTemplate] Error rendering bar chart:', error)
+                    return null
+                  }
+                })()
               )}
             </ResponsiveContainer>
           </div>
@@ -390,6 +639,22 @@ const BarChartTemplate: React.FC<BarChartTemplateProps> = ({ config, filterValue
                 </button>
               ))}
             </div>
+            {topNConfig?.enabled && (
+              <div className="chart-filters" style={{ marginTop: '1rem' }}>
+                <div style={{ marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Show:
+                </div>
+                {topNConfig.options.map((option, index) => (
+                  <button
+                    key={index}
+                    className={`filter-button ${topNConfig.defaultTopN === option.value ? 'active' : ''}`}
+                    onClick={() => topNConfig.onTopNChange?.(option.value)}
+                  >
+                    <span className="filter-label">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {contextText && (
               <div className="chart-context-text">
                 <p>{contextText}</p>

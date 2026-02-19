@@ -14,10 +14,11 @@ export interface StartupMetrics {
   employees: MetricData
   employeesInFinland: MetricData
   rdi: MetricData
+  unicorns: MetricData
 }
 
 // Load data from localStorage (fast) or Google Sheets (backup)
-function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi: any[], barometer: any[], lastUpdated?: string } | null {
+function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[], lastUpdated?: string } | null {
   try {
     const stored = localStorage.getItem('startupData')
     if (!stored) return null
@@ -28,6 +29,7 @@ function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi:
       employeesGender: data.employeesGender || [],
       rdi: data.rdi || [],
       barometer: data.barometer || [],
+      unicorns: data.unicorns || [],
       lastUpdated: data.lastUpdated
     }
   } catch (error) {
@@ -36,13 +38,13 @@ function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi:
 }
 
 // Load data from local JSON files (primary source)
-async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[] }> {
+async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[] }> {
   try {
     // Load main data
     const mainResponse = await fetch('/data/main-data.json')
     if (!mainResponse.ok) {
       console.warn('Main data JSON file not found at /data/main-data.json')
-      return { main: [], employeesGender: [], rdi: [], barometer: [] }
+      return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [] }
     }
     const main = await mainResponse.json()
     
@@ -103,21 +105,34 @@ async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: 
       console.log('No barometer data file found (optional)')
     }
     
+    // Load unicorns data (optional)
+    let unicorns: any[] = []
+    try {
+      const unicornsResponse = await fetch('/data/unicorns-data.json')
+      if (unicornsResponse.ok) {
+        unicorns = await unicornsResponse.json()
+      }
+    } catch (error) {
+      // Unicorns data is optional, so we ignore errors
+      console.log('No unicorns data file found (optional)')
+    }
+    
     console.log('✅ Loaded data from local JSON files')
     console.log(`   Main data: ${main.length} rows`)
     console.log(`   Gender data: ${employeesGender.length} rows`)
     console.log(`   RDI data: ${rdi.length} rows`)
     console.log(`   Barometer data: ${barometer.length} rows`)
+    console.log(`   Unicorns data: ${unicorns.length} rows`)
     
-    return { main, employeesGender, rdi, barometer }
+    return { main, employeesGender, rdi, barometer, unicorns }
   } catch (error) {
     console.error('Error loading data from JSON files:', error)
-    return { main: [], employeesGender: [], rdi: [], barometer: [] }
+    return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [] }
   }
 }
 
 // Load data from multiple tabs
-export async function loadAllTabsData(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[] }> {
+export async function loadAllTabsData(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[] }> {
   // Primary: Load from local JSON files (fast, no network requests)
   const jsonData = await loadDataFromJSONFiles()
   if (jsonData.main.length > 0) {
@@ -132,7 +147,8 @@ export async function loadAllTabsData(): Promise<{ main: any[], employeesGender:
       main: localData.main,
       employeesGender: localData.employeesGender || [],
       rdi: localData.rdi || [],
-      barometer: localData.barometer || []
+      barometer: localData.barometer || [],
+      unicorns: localData.unicorns || []
     }
   }
   
@@ -140,10 +156,10 @@ export async function loadAllTabsData(): Promise<{ main: any[], employeesGender:
   console.warn('⚠️ No JSON data files found. Loading from Excel file as last resort...')
   try {
     const main = await loadStartupData()
-    return { main, employeesGender: [], rdi: [], barometer: [] }
+    return { main, employeesGender: [], rdi: [], barometer: [], unicorns: [] }
   } catch (error) {
     console.error('Failed to load data from any source:', error)
-    return { main: [], employeesGender: [], rdi: [], barometer: [] }
+    return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [] }
   }
 }
 
@@ -412,8 +428,8 @@ function formatValue(value: number, isRevenue: boolean = false, showAbsolute: bo
 
 // Extract metrics from data
 export async function getStartupMetrics(): Promise<StartupMetrics | null> {
-  // Load all data including RDI
-  const { main: allData, rdi: rdiData } = await loadAllTabsData()
+  // Load all data including RDI and Unicorns
+  const { main: allData, rdi: rdiData, unicorns: unicornsData } = await loadAllTabsData()
   
   if (allData.length === 0) {
     return null
@@ -554,8 +570,45 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
     }
   }
   
+  // Calculate Unicorns metric from Unicorns data
+  let unicorns: MetricData | null = null
+  if (unicornsData && unicornsData.length > 0) {
+    console.log('Unicorns data found:', unicornsData.length, 'companies')
+    
+    // Normalize and count unicorns
+    const normalizeUnicornData = (data: any[]) => {
+      return data
+        .map(row => {
+          const firm = row['Firm'] || row['firm'] || ''
+          const valuation = row['Last valuation'] || row['Last valuation'] || row['lastValuation'] || row['valuation'] || null
+          
+          if (!firm || valuation === null || valuation === undefined || isNaN(Number(valuation))) {
+            return null
+          }
+          
+          return {
+            firm: String(firm).trim(),
+            valuation: Number(valuation)
+          }
+        })
+        .filter((row): row is { firm: string; valuation: number } => row !== null)
+    }
+    
+    const normalizedUnicorns = normalizeUnicornData(unicornsData)
+    const unicornCount = normalizedUnicorns.length
+    
+    if (unicornCount > 0) {
+      unicorns = {
+        value: unicornCount,
+        growth: 0, // Unicorns don't have year-based growth, it's a count
+        year: 'Total',
+        formattedValue: unicornCount.toString()
+      }
+    }
+  }
+  
   // Return null if we couldn't find at least one metric
-  if (!firms && !revenue && !employees && !employeesInFinland && !rdi) {
+  if (!firms && !revenue && !employees && !employeesInFinland && !rdi && !unicorns) {
     return null
   }
   
@@ -564,7 +617,8 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
     revenue: revenue || { value: 0, growth: 0, year: 'N/A', formattedValue: '€0' },
     employees: employees || { value: 0, growth: 0, year: 'N/A', formattedValue: '0' },
     employeesInFinland: employeesInFinland || { value: 0, growth: 0, year: 'N/A', formattedValue: '0' },
-    rdi: rdi || { value: 0, growth: 0, year: 'N/A', formattedValue: '€0' }
+    rdi: rdi || { value: 0, growth: 0, year: 'N/A', formattedValue: '€0' },
+    unicorns: unicorns || { value: 0, growth: 0, year: 'N/A', formattedValue: '0' }
   }
 }
 

@@ -1,0 +1,122 @@
+[
+  {
+    "Firm": "Wolt",
+    "Last valuation": 8.1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "MySQL",
+    "Last valuation": 1.1,
+    "Finnish": false,
+    "Finnish background": true
+  },
+  {
+    "Firm": "Smartly",
+    "Last valuation": 1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Relex",
+    "Last valuation": 5.5,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "HMD global",
+    "Last valuation": 1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Applifier",
+    "Last valuation": 1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Oura",
+    "Last valuation": 10.9,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Supercell",
+    "Last valuation": 10.2,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Epassi",
+    "Last valuation": 1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Rovio",
+    "Last valuation": 1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "AlphaSense",
+    "Last valuation": 4,
+    "Finnish": false,
+    "Finnish background": true
+  },
+  {
+    "Firm": "CRF Health",
+    "Last valuation": 1.1,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Virta",
+    "Last valuation": 2,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Small Giant Games",
+    "Last valuation": 1.9,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Aiven",
+    "Last valuation": 2.7,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "IQM",
+    "Last valuation": 2.8,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Trulia",
+    "Last valuation": 2.25,
+    "Finnish": false,
+    "Finnish background": true
+  },
+  {
+    "Firm": "Linear",
+    "Last valuation": 1.1,
+    "Finnish": false,
+    "Finnish background": true
+  },
+  {
+    "Firm": "IceEye",
+    "Last valuation": 2.4,
+    "Finnish": true,
+    "Finnish background": false
+  },
+  {
+    "Firm": "Hostaway",
+    "Last valuation": 1,
+    "Finnish": true,
+    "Finnish background": false
+  }
+]

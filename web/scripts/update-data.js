@@ -42,6 +42,7 @@ const GOOGLE_SHEET_ID = env.VITE_GOOGLE_SHEET_ID
 const GOOGLE_SHEET_GID = env.VITE_GOOGLE_SHEET_GID || '0'
 const EMPLOYEES_GENDER_GID = env.VITE_EMPLOYEES_GENDER_GID
 const RDI_GID = env.VITE_RDI_GID
+const UNICORNS_GID = env.VITE_UNICORNS_GID
 // Use BAROMETER_SHEET_ID and BAROMETER_GID (without VITE_ prefix) for Node script
 // Fallback to VITE_ prefixed vars for backwards compatibility, then to known values
 const BAROMETER_SHEET_ID = env.BAROMETER_SHEET_ID || env.VITE_BAROMETER_SHEET_ID || '110mKqlfwoKFeM87tTNX22UFbXmZ2h2V4t936tbXBiD0'
@@ -58,6 +59,7 @@ console.log(`   Google Sheet ID: ${GOOGLE_SHEET_ID}`)
 console.log(`   Main data GID: ${GOOGLE_SHEET_GID}`)
 console.log(`   Employees gender GID: ${EMPLOYEES_GENDER_GID || 'NOT SET'}`)
 console.log(`   RDI GID: ${RDI_GID || 'NOT SET'}`)
+console.log(`   Unicorns GID: ${UNICORNS_GID || 'NOT SET'}`)
 console.log(`   Barometer Sheet ID: ${BAROMETER_SHEET_ID}`)
 console.log(`   Barometer GID: ${BAROMETER_GID}\n`)
 
@@ -272,6 +274,94 @@ async function updateData() {
       }
     } else {
       console.log('\n⚠️  RDI GID not configured, skipping RDI data...')
+    }
+    
+    // Load Unicorns data if configured
+    let unicornsData = []
+    if (UNICORNS_GID) {
+      try {
+        console.log(`\n📥 Loading Unicorns data from GID: ${UNICORNS_GID}`)
+        const unicornsRawData = await loadDataFromTab(UNICORNS_GID)
+        console.log(`✅ Unicorns CSV data loaded: ${unicornsRawData.length} rows`)
+        
+        if (unicornsRawData.length > 0) {
+          const headers = Object.keys(unicornsRawData[0])
+          console.log(`   Columns found: ${headers.join(', ')}`)
+          
+          // Parse and transform data with proper types
+          for (const row of unicornsRawData) {
+            const parsedRow = {}
+            
+            // Parse each column
+            for (const header of headers) {
+              const value = row[header]
+              const headerLower = header.toLowerCase().trim()
+              
+              // Firm: string
+              if (headerLower === 'firm') {
+                parsedRow[header] = value !== undefined && value !== null ? String(value).trim() : ''
+              }
+              // Last valuation: number (handle commas, currency symbols)
+              else if (headerLower === 'last valuation' || headerLower === 'lastvaluation') {
+                if (value === undefined || value === null || value === '') {
+                  parsedRow[header] = null
+                } else {
+                  // Handle both string and number types from loadDataFromTab
+                  const strValue = String(value).replace(/[,\s€$£¥]/g, '')
+                  const numValue = parseFloat(strValue)
+                  parsedRow[header] = isNaN(numValue) ? null : numValue
+                }
+              }
+              // Finnish: boolean (1/0 -> true/false)
+              else if (headerLower === 'finnish') {
+                if (value === undefined || value === null || value === '') {
+                  parsedRow[header] = false
+                } else {
+                  // Handle both number (1/0) and string ("1"/"0"/"true"/"false")
+                  const numValue = typeof value === 'number' ? value : parseFloat(String(value))
+                  const strValue = String(value).toLowerCase().trim()
+                  parsedRow[header] = numValue === 1 || strValue === 'true' || strValue === '1'
+                }
+              }
+              // Finnish background: boolean (1/0 -> true/false)
+              else if (headerLower === 'finnish background' || headerLower === 'finnishbackground') {
+                if (value === undefined || value === null || value === '') {
+                  parsedRow[header] = false
+                } else {
+                  // Handle both number (1/0) and string ("1"/"0"/"true"/"false")
+                  const numValue = typeof value === 'number' ? value : parseFloat(String(value))
+                  const strValue = String(value).toLowerCase().trim()
+                  parsedRow[header] = numValue === 1 || strValue === 'true' || strValue === '1'
+                }
+              }
+              // Default: keep original value (already parsed by loadDataFromTab)
+              else {
+                parsedRow[header] = value
+              }
+            }
+            
+            if (Object.keys(parsedRow).length > 0) {
+              unicornsData.push(parsedRow)
+            }
+          }
+          
+          // Save Unicorns data
+          const unicornsDataPath = path.join(dataDir, 'unicorns-data.json')
+          fs.writeFileSync(unicornsDataPath, JSON.stringify(unicornsData, null, 2))
+          console.log(`💾 Saved Unicorns data to ${unicornsDataPath}`)
+          console.log(`   ✅ Parsed ${unicornsData.length} rows`)
+          if (unicornsData.length > 0) {
+            console.log(`   📋 Sample row:`, JSON.stringify(unicornsData[0], null, 2))
+          }
+        } else {
+          console.log(`   ⚠️  Warning: Tab exists but contains no data rows`)
+        }
+      } catch (error) {
+        console.error(`❌ Error loading Unicorns data from GID ${UNICORNS_GID}:`, error.message)
+        console.log(`   Make sure the GID is correct and the tab is accessible`)
+      }
+    } else {
+      console.log('\n⚠️  Unicorns GID not configured, skipping Unicorns data...')
     }
     
     // Load barometer data (different sheet)

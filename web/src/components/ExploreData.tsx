@@ -11,6 +11,7 @@ import WorkforceExplorer from './WorkforceExplorer'
 import BarometerExplorer from './BarometerExplorer'
 import PageHero from './PageHero'
 import { buildEmployeesConfig } from '../charts/buildEconomicImpactConfigs'
+import UnicornsValuationChart from './UnicornsValuationChart'
 import './ExploreData.css'
 
 // Feature flag: Set to true to enable Economic Impact Explorer
@@ -88,7 +89,10 @@ const ExploreData = () => {
   const [showBarometerTable, setShowBarometerTable] = useState(false)
   const [barometerSelectedTab, setBarometerSelectedTab] = useState<'financial' | 'employees' | 'economy'>('financial')
   const [workforceSelectedTab, setWorkforceSelectedTab] = useState<'gender' | 'immigration'>('gender')
-  const [fullscreenChart, setFullscreenChart] = useState<'revenue' | 'employees' | 'firms' | 'rdi' | 'gender' | 'immigration' | 'barometer' | null>(null)
+  const [unicornsData, setUnicornsData] = useState<any[]>([])
+  const [unicornsFilter, setUnicornsFilter] = useState<'all' | 'finnish' | 'finnish-background'>('all')
+  const [showUnicornsTable, setShowUnicornsTable] = useState(false)
+  const [fullscreenChart, setFullscreenChart] = useState<'revenue' | 'employees' | 'firms' | 'rdi' | 'gender' | 'immigration' | 'barometer' | 'unicorns' | null>(null)
   const [fullscreenRdiMetric, setFullscreenRdiMetric] = useState<string | null>(null)
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200)
 
@@ -111,11 +115,12 @@ const ExploreData = () => {
   async function loadAllData() {
     try {
       const { loadAllTabsData } = await import('../utils/dataLoader')
-      const { main, employeesGender, rdi, barometer } = await loadAllTabsData()
+      const { main, employeesGender, rdi, barometer, unicorns } = await loadAllTabsData()
       setAllData(main)
       setEmployeesGenderData(employeesGender)
       setRdiData(rdi)
       setBarometerData(barometer || [])
+      setUnicornsData(unicorns || [])
       
       // Debug: Check for new employee columns
       if (showDebug && main.length > 0) {
@@ -1173,6 +1178,8 @@ const ExploreData = () => {
     
     return config
   }
+
+  // Unicorns chart now uses dedicated component (no config builder needed)
 
   // Build immigration chart config for BarChartTemplate
   const buildImmigrationChartConfig = (): BarChartTemplateConfig | null => {
@@ -2472,13 +2479,17 @@ const ExploreData = () => {
       }
       currentLabel = 'Sentiment'
       isRevenueValue = false
+    } else if (fullscreenChart === 'unicorns') {
+      // Unicorns chart - use UnicornsValuationChart component
+      chartData = unicornsData
+      chartTitle = 'Unicorn Valuations'
     }
 
     // Use the same interval function for fullscreen (can be adjusted if needed)
     const getFullscreenXAxisInterval = getXAxisInterval
 
-    // Don't render if no chart data
-    if (chartData.length === 0) {
+    // Don't render if no chart data (except for unicorns which uses its own component)
+    if (chartData.length === 0 && fullscreenChart !== 'unicorns') {
       return (
         <div className="fullscreen-modal-overlay" onClick={() => {
           setFullscreenChart(null)
@@ -2532,8 +2543,124 @@ const ExploreData = () => {
             </button>
           </div>
           <div className="fullscreen-chart-wrapper">
-            <ResponsiveContainer width="100%" height={600}>
-              {fullscreenChart === 'immigration' && immigrationShareView === 'none' && immigrationComparisonData.length > 0 ? (
+            {fullscreenChart === 'unicorns' ? (
+              <ResponsiveContainer width="100%" height={600}>
+                <BarChart 
+                  data={(() => {
+                    // Normalize and filter unicorns data
+                    const normalizeUnicornData = (data: any[]) => {
+                      return data
+                        .map(row => {
+                          const firm = row['Firm'] || row['firm'] || ''
+                          const valuation = row['Last valuation'] || row['Last valuation'] || row['lastValuation'] || row['valuation'] || null
+                          const isFinnish = row['Finnish'] === true || row['Finnish'] === 1 || row['finnish'] === true || row['finnish'] === 1
+                          const isFinnishBackground = row['Finnish background'] === true || row['Finnish background'] === 1 || 
+                                                       row['finnishBackground'] === true || row['finnishBackground'] === 1
+
+                          if (!firm || valuation === null || valuation === undefined || isNaN(Number(valuation))) {
+                            return null
+                          }
+
+                          return {
+                            firm: String(firm).trim(),
+                            valuation: Number(valuation),
+                            isFinnish: Boolean(isFinnish),
+                            isFinnishBackground: Boolean(isFinnishBackground)
+                          }
+                        })
+                        .filter((row): row is { firm: string; valuation: number; isFinnish: boolean; isFinnishBackground: boolean } => row !== null)
+                    }
+
+                    const normalizedData = normalizeUnicornData(unicornsData)
+                    let filteredData = normalizedData
+                    if (unicornsFilter === 'finnish') {
+                      filteredData = normalizedData.filter(row => row.isFinnish === true)
+                    } else if (unicornsFilter === 'finnish-background') {
+                      filteredData = normalizedData.filter(row => row.isFinnishBackground === true)
+                    }
+
+                    return filteredData
+                      .sort((a, b) => b.valuation - a.valuation)
+                      .map(row => ({
+                        name: row.firm,
+                        value: row.valuation
+                      }))
+                  })()}
+                  margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 80, top: 20, right: 30, left: 30 }}
+                  layout="horizontal"
+                >
+                  <defs>
+                    <linearGradient id="gradient-unicorn-fullscreen" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#A580F2" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#A580F2" stopOpacity={0.3} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                  <XAxis
+                    type="category"
+                    dataKey="name"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 9 : 11 }}
+                    axisLine={{ stroke: chartColors.axis }}
+                    tickLine={{ stroke: chartColors.axis }}
+                    angle={windowWidth <= 640 ? -45 : -60}
+                    textAnchor="end"
+                    height={windowWidth <= 640 ? 60 : 70}
+                    interval={0}
+                  />
+                  <YAxis
+                    type="number"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 8 : 10 }}
+                    axisLine={{ stroke: chartColors.axis }}
+                    tickLine={{ stroke: chartColors.axis }}
+                    width={windowWidth <= 640 ? 35 : 60}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000000) {
+                        const billions = value / 1000000000
+                        return `€${billions.toFixed(billions >= 10 ? 1 : 2)}B`
+                      } else if (value >= 1000000) {
+                        const millions = value / 1000000
+                        return `€${millions.toFixed(millions >= 10 ? 1 : 2)}M`
+                      }
+                      return `€${value.toLocaleString()}`
+                    }}
+                    label={{ 
+                      value: 'Valuation', 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      style: { textAnchor: 'middle', fill: chartColors.tick, fontSize: 11 }
+                    }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: chartColors.tooltipBg,
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: chartColors.tooltipText
+                    }}
+                    cursor={false}
+                    formatter={(value: number) => {
+                      if (value >= 1000000000) {
+                        const billions = value / 1000000000
+                        return [`€${billions.toFixed(2)}B`, 'Valuation']
+                      } else if (value >= 1000000) {
+                        const millions = value / 1000000
+                        return [`€${millions.toFixed(2)}M`, 'Valuation']
+                      }
+                      return [`€${value.toLocaleString()}`, 'Valuation']
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="url(#gradient-unicorn-fullscreen)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <ResponsiveContainer width="100%" height={600}>
+                {fullscreenChart === 'immigration' && immigrationShareView === 'none' && immigrationComparisonData.length > 0 ? (
                 <BarChart data={immigrationComparisonData.filter(row => {
                   const result: any = { name: row.name }
                   if (showFinnishBar) result.Finnish = row.Finnish
@@ -2792,7 +2919,8 @@ const ExploreData = () => {
                 />
               </AreaChart>
               )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
@@ -3829,6 +3957,29 @@ const ExploreData = () => {
                   selectedTab={barometerSelectedTab}
                   onTabChange={setBarometerSelectedTab}
                 />
+              </div>
+            )}
+
+            {/* Unicorns Section */}
+            {unicornsData.length > 0 && (
+              <div className="charts-section charts-section-unicorns">
+                <div className="section-header">
+                  <h2 className="section-title">Unicorns</h2>
+                </div>
+                <p className="section-description">Finnish unicorns - companies valued at over $1 billion.</p>
+                
+                <div className="chart-card chart-card-with-text">
+                  <UnicornsValuationChart
+                    data={unicornsData}
+                    filter={unicornsFilter}
+                    onFilterChange={(filter) => setUnicornsFilter(filter)}
+                    onShowTable={() => setShowUnicornsTable(!showUnicornsTable)}
+                    onFullscreen={() => setFullscreenChart('unicorns')}
+                    showTable={showUnicornsTable}
+                    chartId="unicorns-valuation"
+                    windowWidth={windowWidth}
+                  />
+                </div>
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import type { BarChartTemplateConfig } from '../components/BarChartTemplate'
 import { buildRevenueConfig, buildEmployeesConfig, buildFirmsConfig, buildRdiConfig, type EconomicImpactConfigParams } from '../charts/buildEconomicImpactConfigs'
 import { buildGenderConfig, buildImmigrationConfig } from '../charts/buildWorkforceConfigs'
 import { buildBarometerConfig } from '../charts/buildBarometerConfigs'
+import { buildUnicornConfig } from '../charts/buildUnicornConfigs'
 
 export type ChartId = 
   | 'economic-impact-revenue'
@@ -14,12 +15,13 @@ export type ChartId =
   | 'barometer-financial'
   | 'barometer-employees'
   | 'barometer-economy'
+  | 'unicorns-valuation'
 
 export interface ChartRegistryEntry {
   chartId: ChartId
   title: string
   kind: 'graph' | 'bar'
-  dataKey: 'main' | 'employeesGender' | 'rdi' | 'barometer'
+  dataKey: 'main' | 'employeesGender' | 'rdi' | 'barometer' | 'unicorns'
   buildConfig: (data: any[], params: Record<string, any>) => GraphTemplateConfig | BarChartTemplateConfig | null
 }
 
@@ -233,6 +235,26 @@ export const chartRegistry: Record<ChartId, ChartRegistryEntry> = {
         onShowTable: params.onShowTable,
         onFullscreen: params.onFullscreen,
         showTable: params.showTable
+      })
+    }
+  },
+  'unicorns-valuation': {
+    chartId: 'unicorns-valuation',
+    title: 'Unicorn Valuations',
+    kind: 'bar',
+    dataKey: 'unicorns',
+    buildConfig: (data, params) => {
+      const theme = params.theme || 'dark'
+      const windowWidth = params.windowWidth || 1200
+      return buildUnicornConfig(data, {
+        filter: params.filter || 'all',
+        windowWidth,
+        chartColors: getChartColors(theme),
+        getXAxisInterval: getXAxisInterval(windowWidth),
+        onShowTable: params.onShowTable,
+        onFullscreen: params.onFullscreen,
+        showTable: params.showTable,
+        onFilterChange: params.onFilterChange
       })
     }
   }

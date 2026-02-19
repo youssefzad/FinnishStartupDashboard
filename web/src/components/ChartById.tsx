@@ -3,6 +3,7 @@ import { loadAllTabsData } from '../utils/dataLoader'
 import { chartRegistry, type ChartId, isValidChartId } from '../config/chartRegistry'
 import GraphTemplate from './GraphTemplate'
 import BarChartTemplate from './BarChartTemplate'
+import UnicornsValuationChart from './UnicornsValuationChart'
 
 interface ChartByIdProps {
   chartId: ChartId
@@ -20,8 +21,20 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
   const [config, setConfig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200)
   // Sync filterValue with params.filter (for URL param changes)
   const filterValue = params.filter || 'all'
+
+  // Handle window resize for responsive charts
+  useEffect(() => {
+    if (chartId === 'unicorns-valuation') {
+      const handleResize = () => {
+        setWindowWidth(window.innerWidth)
+      }
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+  }, [chartId])
 
   useEffect(() => {
     if (!isValidChartId(chartId)) {
@@ -39,7 +52,7 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
 
     // Load data - for now we load all tabs (acceptable for embed use case)
     // TODO: Optimize to load only needed dataset if performance becomes an issue
-    loadAllTabsData().then(({ main, employeesGender, rdi, barometer }) => {
+    loadAllTabsData().then(({ main, employeesGender, rdi, barometer, unicorns }) => {
       let data: any[] = []
       switch (entry.dataKey) {
         case 'main':
@@ -53,6 +66,9 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
           break
         case 'barometer':
           data = barometer
+          break
+        case 'unicorns':
+          data = unicorns
           break
       }
 
@@ -83,7 +99,8 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
         showTable: false,
         // Pass callbacks for embed mode URL updates
         onViewChange: embedMode ? onViewChange : undefined,
-        onToggleBar: embedMode ? onToggleBar : undefined
+        onToggleBar: embedMode ? onToggleBar : undefined,
+        onFilterChange: embedMode ? onFilterChange : undefined
       })
 
       if (!builtConfig) {
@@ -146,6 +163,27 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
 
   // Get effective theme for passing to templates (ensure it's 'light' | 'dark')
   const effectiveTheme: 'light' | 'dark' = theme || (params.theme === 'light' || params.theme === 'dark' ? params.theme : 'dark')
+
+  // Special handling for Unicorns chart - use dedicated component
+  if (chartId === 'unicorns-valuation') {
+    // Parse filter from params
+    const unicornsFilter = (params.filter === 'finnish' || params.filter === 'finnish-background' ? params.filter : 'all') as 'all' | 'finnish' | 'finnish-background'
+
+    return (
+      <UnicornsValuationChart
+        data={config?.data || []}
+        filter={unicornsFilter}
+        theme={effectiveTheme}
+        onFilterChange={(newFilter) => {
+          if (onFilterChange) {
+            onFilterChange(newFilter)
+          }
+        }}
+        windowWidth={windowWidth}
+        showTitle={params.showTitle !== 'false'}
+      />
+    )
+  }
 
   if (entry.kind === 'graph') {
     return (
