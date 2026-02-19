@@ -298,7 +298,7 @@ const ExploreData = () => {
            metric === 'FirmsEarlyStage' ||
            // Old column names (for backward compatibility)
            (metricLower === 'number startups' || 
-            metricLower === 'number of startups' ||
+           metricLower === 'number of startups' ||
             metric === 'Number Startups')
   })
   
@@ -309,7 +309,7 @@ const ExploreData = () => {
            metric === 'FirmsLaterStage' ||
            // Old column names (for backward compatibility)
            (metricLower === 'number scaleups' || 
-            metricLower === 'number of scaleups' ||
+           metricLower === 'number of scaleups' ||
             metric === 'Number Scaleups')
   })
   

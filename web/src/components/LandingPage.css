@@ -38,6 +38,11 @@
   overflow: hidden;
 }
 
+/* Light theme: Make background chart area pure white */
+[data-theme="light"] .hero-bg-chart {
+  background: var(--bg-primary);
+}
+
 /* Hero background chart SVG - scoped to hero only, subtle blur */
 .hero-bg-chart .bg-chart-svg {
   width: 100%;
@@ -72,6 +77,11 @@
   position: relative;
   z-index: 10;
   gap: 0;
+}
+
+/* Light theme: Add breathing room above hero content */
+[data-theme="light"] .hero-content {
+  padding-top: 2rem;
 }
 
 /* Logo: Small gap below */
@@ -316,6 +326,11 @@
 
   .hero-content {
     padding: 0 1.5rem;
+  }
+
+  /* Light theme: Preserve breathing room on mobile */
+  [data-theme="light"] .hero-content {
+    padding-top: 2rem;
   }
 
   .fsc-logo-img {

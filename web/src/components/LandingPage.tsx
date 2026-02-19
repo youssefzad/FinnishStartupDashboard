@@ -390,7 +390,7 @@ const LandingPage = () => {
                   description={String(metrics.employees.year)}
                 />
                 <MetricCard
-                  label="R&D"
+                  label="R&D-INVESTMENTS"
                   value={metrics.rdi.formattedValue}
                   trend={`${metrics.rdi.growth >= 0 ? '+' : ''}${metrics.rdi.growth.toFixed(1)}%`}
                   description={String(metrics.rdi.year)}
