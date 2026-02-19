@@ -28,7 +28,7 @@ export default function EmbedHelp() {
               <li><code>economic-impact-firms</code> - Active firms</li>
               <li><code>economic-impact-rdi</code> - R&D investments</li>
               <li><code>workforce-gender</code> - Gender distribution</li>
-              <li><code>workforce-immigration</code> - Immigration status</li>
+              <li><code>workforce-immigration</code> - Foreign background workers</li>
               <li><code>barometer-financial</code> - Financial situation</li>
               <li><code>barometer-employees</code> - Number of employees (barometer)</li>
               <li><code>barometer-economy</code> - Surrounding economy</li>

@@ -565,7 +565,7 @@ export function buildImmigrationConfig(
       ...(showFinnishBar ? { Finnish: row.Finnish } : {}),
       ...(showForeignBar ? { Foreign: row.Foreign } : {})
     }))
-    chartTitle = 'Immigration status'
+    chartTitle = 'Foreign background workers'
     currentLabel = 'Employees'
   }
 

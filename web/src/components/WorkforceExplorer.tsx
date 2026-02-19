@@ -27,7 +27,7 @@ type TabType = 'gender' | 'immigration'
 // Expected title patterns for each tab (for validation)
 const EXPECTED_TITLES: Record<TabType, string[]> = {
   gender: ['Gender distribution', 'Gender'],
-  immigration: ['Immigration status', 'Immigration']
+  immigration: ['Foreign background workers', 'Foreign background', 'Immigration status']
 }
 
 /**
@@ -96,7 +96,7 @@ const WorkforceExplorer = ({
 
   const tabs = [
     { id: 'gender' as TabType, label: 'Gender', available: hasGender },
-    { id: 'immigration' as TabType, label: 'Immigration', available: hasImmigration }
+    { id: 'immigration' as TabType, label: 'Foreign background', available: hasImmigration }
   ].filter(tab => tab.available)
 
   /**

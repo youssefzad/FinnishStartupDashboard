@@ -160,7 +160,7 @@ export const chartRegistry: Record<ChartId, ChartRegistryEntry> = {
   },
   'workforce-immigration': {
     chartId: 'workforce-immigration',
-    title: 'Immigration status',
+    title: 'Foreign background workers',
     kind: 'bar',
     dataKey: 'employeesGender',
     buildConfig: (data, params) => {

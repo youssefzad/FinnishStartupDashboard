@@ -1240,7 +1240,7 @@ const ExploreData = () => {
           trendText = `The share has remained relatively stable, at around ${latestShare.toFixed(1)}% in ${latestYear}.`
         }
         
-        return `The share of foreign background employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
+        return `Foreign background employees are defined as persons who were born outside of Finland. The share of foreign background employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
       }
       
       if (immigrationShareView === 'none' && immigrationComparisonData.length > 0) {
@@ -1268,7 +1268,7 @@ const ExploreData = () => {
           trendText = `The share of foreign background employees has remained relatively stable, at around ${latestForeignShare.toFixed(1)}% in ${latestYear}.`
         }
         
-        return `The Finnish startup sector workforce includes both Finnish and foreign background employees. In ${latestYear}, foreign background employees represented ${latestForeignShare.toFixed(1)}% of the total workforce in startup-based firms. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
+        return `Foreign background employees are defined as persons who were born outside of Finland. The Finnish startup sector workforce includes both Finnish and foreign background employees. In ${latestYear}, foreign background employees represented ${latestForeignShare.toFixed(1)}% of the total workforce in startup-based firms. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
       }
       
       return ''
@@ -1300,7 +1300,7 @@ const ExploreData = () => {
     } else if (immigrationComparisonData.length > 0) {
       // Bar chart view
       chartData = barChartData
-      chartTitle = 'Immigration status'
+      chartTitle = 'Foreign background workers'
       currentLabel = 'Employees'
     } else {
       return null
@@ -2339,7 +2339,7 @@ const ExploreData = () => {
         }))
         currentLabel = 'Employees'
         isRevenueValue = false
-        chartTitle = 'Immigration status'
+        chartTitle = 'Foreign background workers'
       }
     } else if (fullscreenChart === 'rdi' && fullscreenRdiMetric) {
       const metric = fullscreenRdiMetric
@@ -3678,7 +3678,7 @@ const ExploreData = () => {
                         trendText = `The share has remained relatively stable, at around ${latestShare.toFixed(1)}% in ${latestYear}.`
                       }
                       
-                      return `The share of foreign background employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
+                      return `Foreign background employees are defined as persons who were born outside of Finland. The share of foreign background employees in Finnish startup-based firms was ${latestShare.toFixed(1)}% in ${latestYear}. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
                     }
                     
                     if (immigrationShareView === 'none' && immigrationComparisonData.length > 0) {
@@ -3706,7 +3706,7 @@ const ExploreData = () => {
                         trendText = `The share of foreign background employees has remained relatively stable, at around ${latestForeignShare.toFixed(1)}% in ${latestYear}.`
                       }
                       
-                      return `The Finnish startup sector workforce includes both Finnish and foreign background employees. In ${latestYear}, foreign background employees represented ${latestForeignShare.toFixed(1)}% of the total workforce in startup-based firms. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
+                      return `Foreign background employees are defined as persons who were born outside of Finland. The Finnish startup sector workforce includes both Finnish and foreign background employees. In ${latestYear}, foreign background employees represented ${latestForeignShare.toFixed(1)}% of the total workforce in startup-based firms. ${trendText} This diversity reflects the international nature of Finland's startup ecosystem and its ability to attract talent from around the world.`
                     }
                     
                     return ''
@@ -3738,7 +3738,7 @@ const ExploreData = () => {
                   } else if (immigrationComparisonData.length > 0) {
                     // Bar chart view
                     chartData = barChartData
-                      chartTitle = 'Immigration status'
+                      chartTitle = 'Foreign background workers'
                     currentLabel = 'Employees'
                   } else {
                       return null
