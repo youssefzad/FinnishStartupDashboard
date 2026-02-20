@@ -381,14 +381,16 @@ function formatValue(value: number, isRevenue: boolean = false, showAbsolute: bo
   }
   
   // If roundToHundreds is true, round to nearest hundred and show full number with commas
+  // Use explicit 'en-US' locale to ensure consistent formatting across browsers
   if (roundToHundreds) {
     const rounded = Math.round(value / 100) * 100
-    return rounded.toLocaleString()
+    return rounded.toLocaleString('en-US')
   }
   
   // If showAbsolute is true, always show the full number with comma formatting
+  // Use explicit 'en-US' locale to ensure consistent formatting across browsers
   if (showAbsolute) {
-    return Math.round(value).toLocaleString()
+    return Math.round(value).toLocaleString('en-US')
   }
   
   if (isRevenue) {
@@ -422,7 +424,8 @@ function formatValue(value: number, isRevenue: boolean = false, showAbsolute: bo
       return `${Math.round(thousands)}K`
     }
     // For numbers less than 1000, use comma formatting
-    return Math.round(value).toLocaleString()
+    // Use explicit 'en-US' locale to ensure consistent formatting across browsers
+    return Math.round(value).toLocaleString('en-US')
   }
 }
 
@@ -503,6 +506,7 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
   }
   
   // Helper function to convert value to number (handles strings with commas, currency symbols, etc.)
+  // This function is browser-agnostic and handles Edge-specific parsing issues
   const parseNumericValue = (value: any): number | null => {
     if (value === null || value === undefined || value === '') {
       return null
@@ -510,7 +514,11 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
     
     // If already a number, validate and return
     if (typeof value === 'number') {
-      return isNaN(value) ? null : value
+      // Check for valid finite number (Edge might have different NaN handling)
+      if (isNaN(value) || !isFinite(value)) {
+        return null
+      }
+      return value
     }
     
     // Convert to string and clean it
@@ -520,13 +528,23 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
     }
     
     // Remove common formatting: commas (thousand separators), currency symbols, spaces
-    const cleaned = strValue.replace(/[,\s€$£¥]/g, '')
+    // Also handle non-breaking spaces and other Unicode whitespace (Edge compatibility)
+    const cleaned = strValue.replace(/[,\s€$£¥\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, '')
     
-    // Try to parse as number
-    const num = Number(cleaned)
+    // Edge-specific: Handle cases where the string might have been parsed incorrectly
+    // Try Number() first (more strict), then fall back to parseFloat if needed
+    let num = Number(cleaned)
     
-    // Return null if NaN or invalid
+    // If Number() fails, try parseFloat as fallback (Edge compatibility)
     if (isNaN(num) || !isFinite(num)) {
+      // Remove any remaining non-numeric characters except decimal point and minus sign
+      const furtherCleaned = cleaned.replace(/[^\d.-]/g, '')
+      num = parseFloat(furtherCleaned)
+    }
+    
+    // Return null if still NaN or invalid
+    if (isNaN(num) || !isFinite(num)) {
+      console.warn('Failed to parse numeric value:', value, 'cleaned:', cleaned)
       return null
     }
     
