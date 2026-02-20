@@ -437,51 +437,138 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
   
   // Find relevant columns (prioritizing English names, with Finnish as fallback)
   const yearCol = findYearColumn(allData)
-  // Try English names first, then Finnish
-  const firmsCol = findMetricColumn(allData, ['firms', 'firm', 'companies', 'company', 'startups', 'startup', 'number of firms', 'yritykset', 'yritys'])
-  const revenueCol = findMetricColumn(allData, ['revenue', 'turnover', 'sales', 'liikevaihto'])
-  const employeesCol = findMetricColumn(allData, ['employees', 'employee', 'employment', 'jobs', 'workers', 'työlliset', 'työllisyys'])
+  // Try English names first, then Finnish - expanded keyword lists for better matching
+  const firmsCol = findMetricColumn(allData, [
+    'firms', 'firm', 'companies', 'company', 'startups', 'startup', 
+    'number of firms', 'number of companies', 'number of startups',
+    'yritykset', 'yritys', 'yritysten määrä', 'yritysten lukumäärä'
+  ])
+  const revenueCol = findMetricColumn(allData, [
+    'revenue', 'turnover', 'sales', 'total revenue', 'total turnover',
+    'liikevaihto', 'kokonaisliikevaihto'
+  ])
+  const employeesCol = findMetricColumn(allData, [
+    'employees', 'employee', 'employment', 'jobs', 'workers', 'workforce',
+    'total employees', 'total employment', 'number of employees',
+    'työlliset', 'työllisyys', 'työntekijät', 'työllisten määrä'
+  ])
   // Try to find employees in Finland column - prioritize English, then Finnish
   const employeesInFinlandCol = findMetricColumnWithAllKeywords(allData, ['employees', 'finland']) ||
                                  findMetricColumnWithAllKeywords(allData, ['employee', 'finland']) ||
-                                 findMetricColumn(allData, ['employees in finland', 'employees finland', 'employee finland', 'employment finland', 'jobs finland', 'workers finland', 'finland employee', 'finland employees']) ||
-                                 findMetricColumn(allData, ['työlliset_suomessa', 'työlliset suomessa']) ||
+                                 findMetricColumn(allData, [
+                                   'employees in finland', 'employees finland', 'employee finland',
+                                   'employment finland', 'jobs finland', 'workers finland',
+                                   'finland employee', 'finland employees', 'finland employment'
+                                 ]) ||
+                                 findMetricColumn(allData, [
+                                   'työlliset_suomessa', 'työlliset suomessa',
+                                   'työntekijät suomessa', 'työllisyys suomessa'
+                                 ]) ||
                                  findMetricColumnWithAllKeywords(allData, ['työlliset', 'suomessa']) ||
                                  findMetricColumnWithAllKeywords(allData, ['työlliset', 'suomi'])
   
-  // Debug logging
-  console.log('Column detection results:')
+  // Debug logging with more detail
+  console.log('=== Column Detection Results ===')
   console.log('Year column:', yearCol)
   console.log('Firms column:', firmsCol)
   console.log('Revenue column:', revenueCol)
   console.log('Employees column:', employeesCol)
   console.log('Employees in Finland column:', employeesInFinlandCol)
-  console.log('All available columns:', allData.length > 0 ? Object.keys(allData[0]) : 'No data')
+  if (allData.length > 0) {
+    console.log('All available columns:', Object.keys(allData[0]))
+    console.log('Sample data row:', allData[0])
+  } else {
+    console.warn('No data available for column detection')
+  }
+  console.log('================================')
   
   if (!yearCol) {
-    console.warn('Year column not found. Available columns:', allData.length > 0 ? Object.keys(allData[0]) : 'No data')
+    console.error('❌ Year column not found. Cannot extract metrics.')
+    console.error('Available columns:', allData.length > 0 ? Object.keys(allData[0]) : 'No data')
+    if (allData.length > 0) {
+      console.error('Sample row:', allData[0])
+    }
     return null
+  }
+  
+  // Warn if critical columns are missing
+  if (!firmsCol) {
+    console.warn('⚠️ Firms column not found. Firms metric will be 0.')
+  }
+  if (!employeesCol) {
+    console.warn('⚠️ Employees column not found. Employees metric will be 0.')
+  }
+  if (!revenueCol) {
+    console.warn('⚠️ Revenue column not found. Revenue metric will be 0.')
+  }
+  
+  // Helper function to convert value to number (handles strings with commas, currency symbols, etc.)
+  const parseNumericValue = (value: any): number | null => {
+    if (value === null || value === undefined || value === '') {
+      return null
+    }
+    
+    // If already a number, validate and return
+    if (typeof value === 'number') {
+      return isNaN(value) ? null : value
+    }
+    
+    // Convert to string and clean it
+    const strValue = String(value).trim()
+    if (strValue === '' || strValue === 'N/A' || strValue === 'n/a' || strValue === '-') {
+      return null
+    }
+    
+    // Remove common formatting: commas (thousand separators), currency symbols, spaces
+    const cleaned = strValue.replace(/[,\s€$£¥]/g, '')
+    
+    // Try to parse as number
+    const num = Number(cleaned)
+    
+    // Return null if NaN or invalid
+    if (isNaN(num) || !isFinite(num)) {
+      return null
+    }
+    
+    return num
   }
   
   // Helper function to get latest and previous values for a metric
   const getMetricData = (column: string | null, isRevenue: boolean = false, showAbsolute: boolean = false, roundToHundreds: boolean = false, roundToMillions: boolean = false): MetricData | null => {
-    if (!column) return null
+    if (!column) {
+      console.warn(`Column not found for metric. Available columns:`, allData.length > 0 ? Object.keys(allData[0]) : 'No data')
+      return null
+    }
     
-    // Filter and sort data by year
+    // Verify column exists in data
+    if (allData.length > 0 && !(column in allData[0])) {
+      console.warn(`Column "${column}" not found in data. Available columns:`, Object.keys(allData[0]))
+      return null
+    }
+    
+    // Filter and sort data by year, with robust value parsing
     const validData = allData
-      .filter(row => {
+      .map(row => {
         const year = row[yearCol]
-        const value = row[column]
-        return year !== undefined && 
-               value !== undefined && 
-               typeof value === 'number' && 
-               !isNaN(value) &&
-               value > 0
+        const rawValue = row[column]
+        const value = parseNumericValue(rawValue)
+        
+        // Validate year
+        if (year === undefined || year === null || year === '') {
+          return null
+        }
+        
+        // Validate value
+        if (value === null || value <= 0) {
+          return null
+        }
+        
+        return {
+          year,
+          value
+        }
       })
-      .map(row => ({
-        year: row[yearCol],
-        value: row[column] as number
-      }))
+      .filter((item): item is { year: any; value: number } => item !== null)
       .sort((a, b) => {
         // Sort by year (handle both string and number years)
         const yearA = typeof a.year === 'number' ? a.year : parseInt(String(a.year))
@@ -492,12 +579,29 @@ export async function getStartupMetrics(): Promise<StartupMetrics | null> {
         return 0
       })
     
-    if (validData.length === 0) return null
+    if (validData.length === 0) {
+      console.warn(`No valid data found for column "${column}". Check data format and values.`)
+      // Log sample rows for debugging
+      if (allData.length > 0) {
+        console.warn('Sample rows for debugging:', allData.slice(0, 3).map(row => ({
+          year: row[yearCol],
+          [column]: row[column]
+        })))
+      }
+      return null
+    }
     
     const latest = validData[validData.length - 1]
     const previous = validData.length > 1 ? validData[validData.length - 2] : null
     
     const growth = previous ? calculateGrowth(latest.value, previous.value) : 0
+    
+    console.log(`Metric extracted for "${column}":`, {
+      value: latest.value,
+      year: latest.year,
+      growth: growth.toFixed(2) + '%',
+      formattedValue: formatValue(latest.value, isRevenue, showAbsolute, roundToHundreds, roundToMillions)
+    })
     
     return {
       value: latest.value,
