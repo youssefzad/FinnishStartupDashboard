@@ -4,8 +4,26 @@
   min-height: 100vh;
   background: var(--bg-primary);
   color: var(--text-primary);
-  padding-top: var(--header-height-desktop, 90px); /* Account for fixed navigation */
+  /* Account for fixed navigation with extra safe spacing */
+  padding-top: calc(var(--header-height-desktop, 90px) + 20px);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* FSC Header adjustments - account for larger header if present */
+body.use-fsc-header-hero .landing-page {
+  padding-top: calc(var(--fsc-header-height-desktop, 100px) + 20px);
+}
+
+/* Mobile: Adjust padding for smaller header */
+@media (max-width: 768px) {
+  .landing-page {
+    padding-top: calc(var(--header-height-mobile, 75px) + 20px);
+  }
+
+  /* FSC Header adjustments - Mobile */
+  body.use-fsc-header-hero .landing-page {
+    padding-top: calc(var(--fsc-header-height-mobile, 80px) + 20px);
+  }
 }
 
 /* Hero Section - Clean, minimal design with perfect vertical centering */
@@ -77,17 +95,23 @@
   position: relative;
   z-index: 10;
   gap: 0;
+  /* Ensure content starts below navigation with safe spacing */
+  margin-top: 2rem;
 }
 
 /* Light theme: Add breathing room above hero content */
 [data-theme="light"] .hero-content {
   padding-top: 2rem;
+  margin-top: 2rem;
 }
 
-/* Logo: Small gap below */
+/* Logo: Small gap below, ensure visibility above navigation */
 .hero-logo {
   margin-bottom: 1.5rem;
+  margin-top: 1rem; /* Extra top margin to ensure visibility */
   animation: fadeInDown 0.8s ease-out;
+  position: relative;
+  z-index: 11; /* Above hero-content but still below navigation (1000) */
 }
 
 .fsc-logo-img {
@@ -330,11 +354,17 @@
 
   .hero-content {
     padding: 0 1.5rem;
+    margin-top: 1.5rem; /* Ensure spacing on mobile */
   }
 
   /* Light theme: Preserve breathing room on mobile */
   [data-theme="light"] .hero-content {
     padding-top: 2rem;
+    margin-top: 1.5rem;
+  }
+
+  .hero-logo {
+    margin-top: 0.5rem; /* Reduced on mobile but still safe */
   }
 
   .fsc-logo-img {

@@ -38,9 +38,18 @@ const useCounter = (targetValue: string, duration: number = 2000) => {
         multiplier = 1000 // 1 thousand
       }
 
-      // Remove commas and parse
+      // Remove ALL commas (thousand separators) before parsing
+      // This ensures locale-specific decimal separators don't interfere
       numStr = numStr.replace(/,/g, '')
-      const num = parseFloat(numStr) || 0
+      
+      // Use Number() instead of parseFloat() for more reliable parsing
+      // Number() is stricter and won't be affected by locale settings
+      const num = Number(numStr) || 0
+
+      // Validate: if Number() returns NaN or the original string had unexpected format, log for debugging
+      if (isNaN(num) && numStr.length > 0) {
+        console.warn('Failed to parse number from:', value, 'cleaned:', numStr)
+      }
 
       return { num, suffix, prefix, multiplier }
     }
@@ -125,8 +134,8 @@ const useCounter = (targetValue: string, duration: number = 2000) => {
       // For thousands, round to nearest integer
       formatted = Math.round(value).toString()
     } else {
-      // For plain numbers, add commas
-      formatted = Math.round(value).toLocaleString()
+      // For plain numbers, add commas using 'en-US' locale to ensure comma as thousand separator
+      formatted = Math.round(value).toLocaleString('en-US')
     }
 
     return `${prefix}${formatted}${suffix}`
