@@ -61,6 +61,68 @@
   line-height: 1.6;
 }
 
+.publications-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.publication-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border-left: 3px solid var(--accent-color);
+  text-align: left;
+}
+
+.publication-card-title {
+  margin: 0 0 0.75rem 0;
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: clamp(1.2rem, 2.5vw, 1.4rem);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.publication-card-description {
+  margin: 0 0 1.35rem 0;
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  max-width: 720px;
+}
+
+/* Reuse hero CTA (.cta-button.primary from LandingPage.css); anchors need no underline */
+.publication-download-link {
+  text-decoration: none;
+}
+
+.publication-download-link:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 3px;
+}
+
+/* About-style CTA card (classes from About.css); spacing on Publications */
+.publications-explore-cta {
+  margin-top: 2.5rem;
+  margin-bottom: 0;
+}
+
+.publication-explore-link {
+  text-decoration: none;
+}
+
+.publication-explore-link:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 3px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .publications-container {
@@ -69,6 +131,16 @@
 
   .publications-section {
     padding: 2rem;
+  }
+
+  .publication-card {
+    padding: 1.5rem 1.25rem 1.35rem;
+  }
+
+  .publication-download-link,
+  .publication-explore-link {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
