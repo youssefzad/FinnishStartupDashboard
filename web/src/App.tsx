@@ -46,6 +46,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/explore" element={<ExploreData />} />
+        <Route path="/data" element={<ExploreData />} />
         <Route path="/about" element={<About />} />
         <Route path="/publications" element={<Publications />} />
         <Route path="/update-data" element={<DataUpdater />} />

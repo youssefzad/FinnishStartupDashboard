@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './About.css'
 
 type AboutSectionProps = {
@@ -85,6 +86,20 @@ const About = () => {
             Definitions and data coverage may differ across indicators and visualizations.
             Users should interpret results in the context of each chart, metric, or dataset description.
           </p>
+        </section>
+
+        <section className="about-cta" aria-labelledby="about-cta-heading">
+          <div className="about-cta-inner">
+            <h2 id="about-cta-heading" className="about-cta-title">
+              Explore the Data
+            </h2>
+            <p className="about-cta-text">
+              Dive into the charts and indicators behind the Finnish startup ecosystem.
+            </p>
+            <Link to="/data" className="about-cta-button">
+              Explore Data
+            </Link>
+          </div>
         </section>
 
         <section className="about-contact" aria-label="Contact">

@@ -90,6 +90,76 @@ body.use-fsc-header-hero .about-page {
   margin-top: 1rem;
 }
 
+.about-cta {
+  margin-top: 2.25rem;
+  margin-bottom: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem 1.75rem 2.25rem;
+  border-left: 3px solid var(--accent-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .about-cta {
+  box-shadow: 0 8px 28px rgba(26, 26, 26, 0.06);
+}
+
+.about-cta-inner {
+  max-width: 540px;
+}
+
+.about-cta-title {
+  margin: 0 0 0.75rem 0;
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-size: clamp(1.35rem, 3vw, 1.6rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.about-cta-text {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-size: 1.02rem;
+}
+
+.about-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  background: var(--accent-color);
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 12px rgba(124, 95, 217, 0.25);
+}
+
+.about-cta-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(124, 95, 217, 0.35);
+}
+
+.about-cta-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
+}
+
+.about-cta-button:active {
+  transform: translateY(0);
+}
+
 .about-contact-link {
   display: inline-flex;
   margin-top: 0.35rem;
@@ -121,6 +191,16 @@ body.use-fsc-header-hero .about-page {
 
   .about-container {
     padding: 1.25rem 1rem 3.5rem;
+  }
+
+  .about-cta {
+    margin-top: 1.75rem;
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
+
+  .about-cta-button {
+    width: 100%;
+    max-width: 100%;
   }
 
   .about-title {

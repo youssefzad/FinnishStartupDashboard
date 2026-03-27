@@ -19,6 +19,9 @@ const Navigation = () => {
     return false
   }
 
+  const isDataPageActive =
+    location.pathname === '/data' || location.pathname === '/explore'
+
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false)
@@ -192,8 +195,8 @@ const Navigation = () => {
             Front Page
           </Link>
           <Link 
-            to="/explore" 
-            className={`nav-link ${isActive('/explore') ? 'active' : ''}`}
+            to="/data" 
+            className={`nav-link ${isDataPageActive ? 'active' : ''}`}
             onClick={handleLinkClick}
           >
             Data

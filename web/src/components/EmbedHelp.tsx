@@ -12,7 +12,7 @@ export default function EmbedHelp() {
           
           <section>
             <h2>Quick Start</h2>
-            <p>Every chart on the <Link to="/explore">Explore page</Link> has an "Embed" button that provides copy-paste code snippets.</p>
+            <p>Every chart on the <Link to="/data">Explore page</Link> has an "Embed" button that provides copy-paste code snippets.</p>
             <p>You can embed any chart using an iframe:</p>
             <pre className="code-block"><code>{`<iframe src="https://your-domain.com/embed/economic-impact-revenue"
      style="width:100%;border:0;"

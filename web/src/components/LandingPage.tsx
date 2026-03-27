@@ -361,7 +361,7 @@ const LandingPage = () => {
           </p>
           
           <div className="hero-cta">
-            <button className="cta-button primary" onClick={() => navigate('/explore')}>
+            <button className="cta-button primary" onClick={() => navigate('/data')}>
               Explore Data
             </button>
             <button className="cta-button secondary" onClick={() => navigate('/about')}>
