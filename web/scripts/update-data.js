@@ -43,6 +43,7 @@ const GOOGLE_SHEET_GID = env.VITE_GOOGLE_SHEET_GID || '0'
 const EMPLOYEES_GENDER_GID = env.VITE_EMPLOYEES_GENDER_GID
 const RDI_GID = env.VITE_RDI_GID
 const UNICORNS_GID = env.VITE_UNICORNS_GID
+const WAGES_GID = env.VITE_WAGES_GID
 // Use BAROMETER_SHEET_ID and BAROMETER_GID (without VITE_ prefix) for Node script
 // Fallback to VITE_ prefixed vars for backwards compatibility, then to known values
 const BAROMETER_SHEET_ID = env.BAROMETER_SHEET_ID || env.VITE_BAROMETER_SHEET_ID || '110mKqlfwoKFeM87tTNX22UFbXmZ2h2V4t936tbXBiD0'
@@ -60,6 +61,7 @@ console.log(`   Main data GID: ${GOOGLE_SHEET_GID}`)
 console.log(`   Employees gender GID: ${EMPLOYEES_GENDER_GID || 'NOT SET'}`)
 console.log(`   RDI GID: ${RDI_GID || 'NOT SET'}`)
 console.log(`   Unicorns GID: ${UNICORNS_GID || 'NOT SET'}`)
+console.log(`   Wages GID: ${WAGES_GID || 'NOT SET'}`)
 console.log(`   Barometer Sheet ID: ${BAROMETER_SHEET_ID}`)
 console.log(`   Barometer GID: ${BAROMETER_GID}\n`)
 
@@ -362,6 +364,29 @@ async function updateData() {
       }
     } else {
       console.log('\n⚠️  Unicorns GID not configured, skipping Unicorns data...')
+    }
+
+    // Load wages data if configured
+    let wagesData = []
+    if (WAGES_GID) {
+      try {
+        console.log(`\n📥 Loading wages data from GID: ${WAGES_GID}`)
+        wagesData = await loadDataFromTab(WAGES_GID)
+        console.log(`✅ Wages data loaded: ${wagesData.length} rows`)
+        if (wagesData.length > 0) {
+          const headers = Object.keys(wagesData[0])
+          console.log(`   Columns found: ${headers.join(', ')}`)
+        }
+
+        const wagesDataPath = path.join(dataDir, 'wages-data.json')
+        fs.writeFileSync(wagesDataPath, JSON.stringify(wagesData, null, 2))
+        console.log(`💾 Saved wages data to ${wagesDataPath}`)
+      } catch (error) {
+        console.error(`❌ Error loading wages data from GID ${WAGES_GID}:`, error.message)
+        console.log(`   Make sure the GID is correct and the tab is accessible`)
+      }
+    } else {
+      console.log('\n⚠️  Wages GID not configured, skipping wages data...')
     }
     
     // Load barometer data (different sheet)

@@ -210,7 +210,9 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                     if (value === null || value === undefined) return <td key={s.key}>-</td>
                     return (
                       <td key={s.key}>
-                        {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                        {typeof value === 'number'
+                          ? Math.round(value).toLocaleString()
+                          : String(value)}
                       </td>
                     )
                   })}
@@ -354,11 +356,13 @@ const GraphTemplate: React.FC<GraphTemplateProps> = ({ config, filterValue, onFi
                   }}
                   formatter={(value: number, name: string, props: any) => {
                     if (isMultiSeries && series) {
-                      // Multi-series tooltip
-                      const seriesConfig = series.find(s => s.key === name)
+                      // Multi-series: Recharts passes Area `name` (label) or sometimes dataKey
+                      const seriesConfig = series.find(
+                        s => s.key === name || s.label === name
+                      )
                       const label = seriesConfig?.label || name
                       if (value === null || value === undefined) return ['N/A', label]
-                      return [value.toFixed(1), label]
+                      return tooltipConfig.formatter(value, value, label)
                     } else {
                       // Single-series tooltip (backward compatible)
                       return tooltipConfig.formatter(value, props.payload?.originalValue || value, dataLabel)

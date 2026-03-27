@@ -5,6 +5,7 @@ import Navigation from './components/Navigation'
 import LandingPage from './components/LandingPage'
 import ExploreData from './components/ExploreData'
 import Publications from './components/Publications'
+import About from './components/About'
 import DataUpdater from './components/DataUpdater'
 import ChartEmbedPage from './components/ChartEmbedPage'
 import EmbedHelp from './components/EmbedHelp'
@@ -45,6 +46,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/explore" element={<ExploreData />} />
+        <Route path="/about" element={<About />} />
         <Route path="/publications" element={<Publications />} />
         <Route path="/update-data" element={<DataUpdater />} />
         <Route path="/embed/:chartId" element={<ChartEmbedPage />} />

@@ -18,7 +18,7 @@ export interface StartupMetrics {
 }
 
 // Load data from localStorage (fast) or Google Sheets (backup)
-function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[], lastUpdated?: string } | null {
+function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[], wages: any[], lastUpdated?: string } | null {
   try {
     const stored = localStorage.getItem('startupData')
     if (!stored) return null
@@ -30,6 +30,7 @@ function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi:
       rdi: data.rdi || [],
       barometer: data.barometer || [],
       unicorns: data.unicorns || [],
+      wages: data.wages || [],
       lastUpdated: data.lastUpdated
     }
   } catch (error) {
@@ -38,13 +39,13 @@ function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], rdi:
 }
 
 // Load data from local JSON files (primary source)
-async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[] }> {
+async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[], wages: any[] }> {
   try {
     // Load main data
     const mainResponse = await fetch('/data/main-data.json')
     if (!mainResponse.ok) {
       console.warn('Main data JSON file not found at /data/main-data.json')
-      return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [] }
+      return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [], wages: [] }
     }
     const main = await mainResponse.json()
     
@@ -116,6 +117,31 @@ async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: 
       // Unicorns data is optional, so we ignore errors
       console.log('No unicorns data file found (optional)')
     }
+
+    // Load wages data (optional)
+    let wages: any[] = []
+    try {
+      const wagesResponse = await fetch('/data/wages-data.json')
+      if (wagesResponse.ok) {
+        wages = await wagesResponse.json()
+      }
+    } catch (error) {
+      console.log('No wages data file found (optional)')
+    }
+
+    // If wages JSON is missing/empty, fall back to Excel sheet
+    // This lets local dev update wages by only updating the Excel file.
+    if (!wages || wages.length === 0) {
+      try {
+        const { wages: wagesFromExcel } = await loadExcelTabsData()
+        if (wagesFromExcel && wagesFromExcel.length > 0) {
+          wages = wagesFromExcel
+          console.log('✅ Loaded wages data from Excel sheet (fallback)')
+        }
+      } catch (error) {
+        // Keep wages empty if Excel isn't available
+      }
+    }
     
     console.log('✅ Loaded data from local JSON files')
     console.log(`   Main data: ${main.length} rows`)
@@ -123,16 +149,17 @@ async function loadDataFromJSONFiles(): Promise<{ main: any[], employeesGender: 
     console.log(`   RDI data: ${rdi.length} rows`)
     console.log(`   Barometer data: ${barometer.length} rows`)
     console.log(`   Unicorns data: ${unicorns.length} rows`)
+    console.log(`   Wages data: ${wages.length} rows`)
     
-    return { main, employeesGender, rdi, barometer, unicorns }
+    return { main, employeesGender, rdi, barometer, unicorns, wages }
   } catch (error) {
     console.error('Error loading data from JSON files:', error)
-    return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [] }
+    return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [], wages: [] }
   }
 }
 
 // Load data from multiple tabs
-export async function loadAllTabsData(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[] }> {
+export async function loadAllTabsData(): Promise<{ main: any[], employeesGender: any[], rdi: any[], barometer: any[], unicorns: any[], wages: any[] }> {
   // Primary: Load from local JSON files (fast, no network requests)
   const jsonData = await loadDataFromJSONFiles()
   if (jsonData.main.length > 0) {
@@ -148,18 +175,19 @@ export async function loadAllTabsData(): Promise<{ main: any[], employeesGender:
       employeesGender: localData.employeesGender || [],
       rdi: localData.rdi || [],
       barometer: localData.barometer || [],
-      unicorns: localData.unicorns || []
+      unicorns: localData.unicorns || [],
+      wages: localData.wages || []
     }
   }
   
   // Last resort: Try Excel file (if JSON files don't exist)
   console.warn('⚠️ No JSON data files found. Loading from Excel file as last resort...')
   try {
-    const main = await loadStartupData()
-    return { main, employeesGender: [], rdi: [], barometer: [], unicorns: [] }
+    const { main, wages } = await loadExcelTabsData()
+    return { main, employeesGender: [], rdi: [], barometer: [], unicorns: [], wages }
   } catch (error) {
     console.error('Failed to load data from any source:', error)
-    return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [] }
+    return { main: [], employeesGender: [], rdi: [], barometer: [], unicorns: [], wages: [] }
   }
 }
 
@@ -320,6 +348,78 @@ export async function loadStartupData(): Promise<any[]> {
     console.error('Error loading data:', error)
     return []
   }
+}
+
+function getWorksheetByName(workbook: XLSX.WorkBook, desiredName: string): XLSX.WorkSheet | null {
+  const exact = workbook.Sheets[desiredName]
+  if (exact) return exact
+
+  const desiredLower = desiredName.toLowerCase().trim()
+  const matchName = workbook.SheetNames.find(n => n.toLowerCase().trim() === desiredLower)
+  if (matchName) return workbook.Sheets[matchName] || null
+
+  return null
+}
+
+function parseWorksheetToObjects(worksheet: XLSX.WorkSheet): any[] {
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+  if (jsonData.length === 0) return []
+
+  const headers = (jsonData[0] || []).map((h: any) => String(h || '').trim())
+  const parsedData: any[] = []
+
+  for (let i = 1; i < jsonData.length; i++) {
+    const row = jsonData[i]
+    if (row && Array.isArray(row) && row.length > 0) {
+      const rowData: any = {}
+      headers.forEach((header, index) => {
+        if (!header) return
+        if (row[index] !== undefined && row[index] !== null && row[index] !== '') {
+          const value = row[index]
+          if (typeof value === 'number') {
+            rowData[header] = value
+          } else {
+            const numValue = parseFloat(String(value).replace(/[,\s€$]/g, ''))
+            rowData[header] = isNaN(numValue) ? String(value) : numValue
+          }
+        }
+      })
+      if (Object.keys(rowData).length > 0) parsedData.push(rowData)
+    }
+  }
+
+  return parsedData
+}
+
+async function loadExcelTabsData(): Promise<{ main: any[]; wages: any[] }> {
+  const response = await fetch(DATA_SOURCE_CONFIG.excelPath)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Excel file: ${response.status} ${response.statusText}`)
+  }
+
+  const arrayBuffer = await response.arrayBuffer()
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('Excel file is empty')
+  }
+
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+
+  const mainSheetName = workbook.SheetNames[0]
+  const mainWorksheet = workbook.Sheets[mainSheetName]
+  const main = mainWorksheet ? parseWorksheetToObjects(mainWorksheet) : []
+
+  const wagesWorksheet = getWorksheetByName(workbook, 'Wages')
+  if (!wagesWorksheet && import.meta.env.DEV) {
+    console.warn('[DEBUG] Excel workbook does not contain sheet "Wages". Available sheets:', workbook.SheetNames)
+  }
+  const wages = wagesWorksheet ? parseWorksheetToObjects(wagesWorksheet) : []
+
+  console.log('Data loaded from Excel workbook:', {
+    mainRows: main.length,
+    wagesRows: wages.length
+  })
+
+  return { main, wages }
 }
 
 // Find metric column by keyword matching

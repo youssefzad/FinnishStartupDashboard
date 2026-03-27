@@ -199,6 +199,13 @@ const Navigation = () => {
             Data
           </Link>
           <Link 
+            to="/about" 
+            className={`nav-link ${isActive('/about') ? 'active' : ''}`}
+            onClick={handleLinkClick}
+          >
+            About
+          </Link>
+          <Link 
             to="/publications" 
             className={`nav-link ${isActive('/publications') ? 'active' : ''}`}
             onClick={handleLinkClick}

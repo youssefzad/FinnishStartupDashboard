@@ -4,6 +4,7 @@ import { buildRevenueConfig, buildEmployeesConfig, buildFirmsConfig, buildRdiCon
 import { buildGenderConfig, buildImmigrationConfig } from '../charts/buildWorkforceConfigs'
 import { buildBarometerConfig } from '../charts/buildBarometerConfigs'
 import { buildUnicornConfig } from '../charts/buildUnicornConfigs'
+import { buildWagesConfig } from '../charts/buildWagesConfigs'
 
 export type ChartId = 
   | 'economic-impact-revenue'
@@ -12,6 +13,7 @@ export type ChartId =
   | 'economic-impact-rdi'
   | 'workforce-gender'
   | 'workforce-immigration'
+  | 'workforce-wages'
   | 'barometer-financial'
   | 'barometer-employees'
   | 'barometer-economy'
@@ -21,7 +23,7 @@ export interface ChartRegistryEntry {
   chartId: ChartId
   title: string
   kind: 'graph' | 'bar'
-  dataKey: 'main' | 'employeesGender' | 'rdi' | 'barometer' | 'unicorns'
+  dataKey: 'main' | 'employeesGender' | 'rdi' | 'barometer' | 'unicorns' | 'wages'
   buildConfig: (data: any[], params: Record<string, any>) => GraphTemplateConfig | BarChartTemplateConfig | null
 }
 
@@ -178,6 +180,24 @@ export const chartRegistry: Record<ChartId, ChartRegistryEntry> = {
         showTable: params.showTable,
         onViewChange: params.onViewChange,
         onToggleBar: params.onToggleBar
+      })
+    }
+  },
+  'workforce-wages': {
+    chartId: 'workforce-wages',
+    title: 'Wages',
+    kind: 'graph',
+    dataKey: 'wages',
+    buildConfig: (data, params) => {
+      const theme = params.theme || 'dark'
+      const windowWidth = params.windowWidth || 1200
+      return buildWagesConfig(data, {
+        windowWidth,
+        chartColors: getChartColors(theme),
+        getXAxisInterval: getXAxisInterval(windowWidth),
+        onShowTable: params.onShowTable,
+        onFullscreen: params.onFullscreen,
+        showTable: params.showTable
       })
     }
   },

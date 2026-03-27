@@ -364,8 +364,8 @@ const LandingPage = () => {
             <button className="cta-button primary" onClick={() => navigate('/explore')}>
               Explore Data
             </button>
-            <button className="cta-button secondary">
-              Learn More
+            <button className="cta-button secondary" onClick={() => navigate('/about')}>
+              About the Data
             </button>
           </div>
 

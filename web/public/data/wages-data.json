@@ -1,0 +1,93 @@
+[
+  {
+    "vuosi": 2010,
+    "MeanpalkFemale": 30876,
+    "MeanpalkMale": 44787,
+    "MeanWageAll": 40542,
+    "MedianWageAll": 36194
+  },
+  {
+    "vuosi": 2011,
+    "MeanpalkFemale": 32054,
+    "MeanpalkMale": 46446,
+    "MeanWageAll": 40558,
+    "MedianWageAll": 35980
+  },
+  {
+    "vuosi": 2012,
+    "MeanpalkFemale": 34443,
+    "MeanpalkMale": 49395,
+    "MeanWageAll": 43497,
+    "MedianWageAll": 36677
+  },
+  {
+    "vuosi": 2013,
+    "MeanpalkFemale": 36372,
+    "MeanpalkMale": 52533,
+    "MeanWageAll": 55741,
+    "MedianWageAll": 37319
+  },
+  {
+    "vuosi": 2014,
+    "MeanpalkFemale": 35547,
+    "MeanpalkMale": 50122,
+    "MeanWageAll": 47703,
+    "MedianWageAll": 38429
+  },
+  {
+    "vuosi": 2015,
+    "MeanpalkFemale": 36500,
+    "MeanpalkMale": 53405,
+    "MeanWageAll": 59660,
+    "MedianWageAll": 39183
+  },
+  {
+    "vuosi": 2016,
+    "MeanpalkFemale": 36897,
+    "MeanpalkMale": 53253,
+    "MeanWageAll": 69436,
+    "MedianWageAll": 39344
+  },
+  {
+    "vuosi": 2017,
+    "MeanpalkFemale": 38910,
+    "MeanpalkMale": 60158,
+    "MeanWageAll": 66518,
+    "MedianWageAll": 40349
+  },
+  {
+    "vuosi": 2018,
+    "MeanpalkFemale": 39460,
+    "MeanpalkMale": 56341,
+    "MeanWageAll": 55166,
+    "MedianWageAll": 41817
+  },
+  {
+    "vuosi": 2019,
+    "MeanpalkFemale": 41114,
+    "MeanpalkMale": 56561,
+    "MeanWageAll": 54661,
+    "MedianWageAll": 43123
+  },
+  {
+    "vuosi": 2020,
+    "MeanpalkFemale": 42092,
+    "MeanpalkMale": 59700,
+    "MeanWageAll": 57752,
+    "MedianWageAll": 45278
+  },
+  {
+    "vuosi": 2021,
+    "MeanpalkFemale": 45352,
+    "MeanpalkMale": 63724,
+    "MeanWageAll": 58018,
+    "MedianWageAll": 47057
+  },
+  {
+    "vuosi": 2022,
+    "MeanpalkFemale": 48243,
+    "MeanpalkMale": 65650,
+    "MeanWageAll": 61751,
+    "MedianWageAll": 49575
+  }
+]

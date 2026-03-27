@@ -74,7 +74,7 @@ const DataUpdater = () => {
           <p><strong>How to update website data:</strong></p>
           <ol>
             <li>Click "Update Data from Google Sheets" above</li>
-            <li>Two JSON files will be downloaded: <code>main-data.json</code> and <code>employees-gender-data.json</code></li>
+            <li>JSON files will be downloaded: <code>main-data.json</code>, <code>employees-gender-data.json</code>, and <code>wages-data.json</code> (if configured)</li>
             <li>Copy these files to <code>public/data/</code> folder in your project</li>
             <li>Restart your dev server (or rebuild) for changes to take effect</li>
           </ol>

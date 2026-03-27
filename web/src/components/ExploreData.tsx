@@ -11,6 +11,7 @@ import WorkforceExplorer from './WorkforceExplorer'
 import BarometerExplorer from './BarometerExplorer'
 import PageHero from './PageHero'
 import { buildEmployeesConfig } from '../charts/buildEconomicImpactConfigs'
+import { buildWagesConfig } from '../charts/buildWagesConfigs'
 import UnicornsValuationChart from './UnicornsValuationChart'
 import './ExploreData.css'
 
@@ -70,6 +71,7 @@ const ExploreData = () => {
   const [employeesGenderData, setEmployeesGenderData] = useState<any[]>([])
   const [rdiData, setRdiData] = useState<any[]>([])
   const [barometerData, setBarometerData] = useState<any[]>([])
+  const [wagesData, setWagesData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [revenueFilter, setRevenueFilter] = useState<'all' | 'early-stage' | 'later-stage'>('all')
   const [employeesFilter, setEmployeesFilter] = useState<'all' | 'finland' | 'early-stage' | 'later-stage'>('all')
@@ -88,11 +90,12 @@ const ExploreData = () => {
   const [showRdiTable, setShowRdiTable] = useState<Record<string, boolean>>({})
   const [showBarometerTable, setShowBarometerTable] = useState(false)
   const [barometerSelectedTab, setBarometerSelectedTab] = useState<'financial' | 'employees' | 'economy'>('financial')
-  const [workforceSelectedTab, setWorkforceSelectedTab] = useState<'gender' | 'immigration'>('gender')
+  const [workforceSelectedTab, setWorkforceSelectedTab] = useState<'gender' | 'immigration' | 'wages'>('gender')
+  const [wagesView, setWagesView] = useState<'all-workers' | 'by-gender'>('all-workers')
   const [unicornsData, setUnicornsData] = useState<any[]>([])
   const [unicornsFilter, setUnicornsFilter] = useState<'all' | 'finnish' | 'finnish-background'>('all')
   const [showUnicornsTable, setShowUnicornsTable] = useState(false)
-  const [fullscreenChart, setFullscreenChart] = useState<'revenue' | 'employees' | 'firms' | 'rdi' | 'gender' | 'immigration' | 'barometer' | 'unicorns' | null>(null)
+  const [fullscreenChart, setFullscreenChart] = useState<'revenue' | 'employees' | 'firms' | 'rdi' | 'gender' | 'immigration' | 'wages' | 'barometer' | 'unicorns' | null>(null)
   const [fullscreenRdiMetric, setFullscreenRdiMetric] = useState<string | null>(null)
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200)
 
@@ -115,12 +118,13 @@ const ExploreData = () => {
   async function loadAllData() {
     try {
       const { loadAllTabsData } = await import('../utils/dataLoader')
-      const { main, employeesGender, rdi, barometer, unicorns } = await loadAllTabsData()
+      const { main, employeesGender, rdi, barometer, unicorns, wages } = await loadAllTabsData()
       setAllData(main)
       setEmployeesGenderData(employeesGender)
       setRdiData(rdi)
       setBarometerData(barometer || [])
       setUnicornsData(unicorns || [])
+      setWagesData(wages || [])
       
       // Debug: Check for new employee columns
       if (showDebug && main.length > 0) {
@@ -481,6 +485,9 @@ const ExploreData = () => {
   }
   
   const immigrationComparisonData = getImmigrationComparisonData()
+
+  // Wages chart data is loaded as its own dataset (sheet: "Wages")
+  const hasWagesData = wagesData.length > 0
   
   // Get share of Finnish data
   const getShareOfFinnishData = () => {
@@ -1177,6 +1184,23 @@ const ExploreData = () => {
     }
     
     return config
+  }
+
+  // Build wages chart config for GraphTemplate (multi-series: female vs male)
+  const buildWagesChartConfig = (view: 'all-workers' | 'by-gender'): GraphTemplateConfig | null => {
+    if (!hasWagesData) return null
+    const chartColors = getChartColors()
+    return buildWagesConfig(wagesData, {
+      view,
+      windowWidth,
+      chartColors,
+      getXAxisInterval,
+      onShowTable: () => {
+        // Reuse gender table state slot to avoid adding new UI controls here; explorer passes showTable
+      },
+      onFullscreen: () => setFullscreenChart('wages'),
+      showTable: false
+    })
   }
 
   // Unicorns chart now uses dedicated component (no config builder needed)
@@ -2070,6 +2094,7 @@ const ExploreData = () => {
     let currentLabel = ''
     let isRevenueValue = false
     let chartTitle = ''
+    let wagesFullscreenConfig: GraphTemplateConfig | null = null
 
     if (fullscreenChart === 'revenue') {
       // Check all rows since columns may not exist in first row
@@ -2483,6 +2508,21 @@ const ExploreData = () => {
       // Unicorns chart - use UnicornsValuationChart component
       chartData = unicornsData
       chartTitle = 'Unicorn Valuations'
+    } else if (fullscreenChart === 'wages') {
+      wagesFullscreenConfig = buildWagesConfig(wagesData, {
+        view: wagesView,
+        windowWidth,
+        chartColors,
+        getXAxisInterval
+      })
+      if (wagesFullscreenConfig) {
+        chartData = wagesFullscreenConfig.data
+        chartTitle = wagesFullscreenConfig.title
+        currentLabel = wagesFullscreenConfig.dataLabel
+        isRevenueValue = false
+      } else {
+        chartTitle = 'Wages'
+      }
     }
 
     // Use the same interval function for fullscreen (can be adjusted if needed)
@@ -2542,6 +2582,27 @@ const ExploreData = () => {
               </svg>
             </button>
           </div>
+          {fullscreenChart === 'wages' &&
+            wagesFullscreenConfig?.filtersConfig?.enabled &&
+            wagesFullscreenConfig.filtersConfig.options.length > 1 && (
+              <div
+                className="fullscreen-wages-filters"
+                style={{ display: 'flex', gap: '8px', padding: '0 1.25rem 0.75rem', flexWrap: 'wrap' }}
+              >
+                {wagesFullscreenConfig.filtersConfig.options.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`filter-button ${wagesView === option.value ? 'active' : ''}`}
+                    onClick={() =>
+                      setWagesView(option.value as 'all-workers' | 'by-gender')
+                    }
+                  >
+                    <span className="filter-label">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           <div className="fullscreen-chart-wrapper">
             {fullscreenChart === 'unicorns' ? (
               <ResponsiveContainer width="100%" height={600}>
@@ -2843,6 +2904,105 @@ const ExploreData = () => {
                       name="Next 3 months"
                     />
                   )}
+                </AreaChart>
+              ) : fullscreenChart === 'wages' &&
+                wagesFullscreenConfig &&
+                wagesFullscreenConfig.series &&
+                wagesFullscreenConfig.series.length > 0 ? (
+                <AreaChart
+                  data={wagesFullscreenConfig.data}
+                  margin={
+                    windowWidth <= 640
+                      ? { bottom: 60, top: 20, right: 5, left: 15 }
+                      : { bottom: 60, top: 20, right: 30, left: 30 }
+                  }
+                >
+                  <defs>
+                    {wagesFullscreenConfig.series.map((s, index) => {
+                      const gradientId = `${s.gradientId || 'gradient-wages-fs'}-${index}-fullscreen`
+                      const startColor =
+                        s.gradientStartColor || s.color || '#A580F2'
+                      const endColor = s.gradientEndColor || s.color || '#A580F2'
+                      const startOpacity = s.gradientStartOpacity ?? 0.25
+                      const endOpacity = s.gradientEndOpacity ?? 0.05
+                      return (
+                        <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={startColor} stopOpacity={startOpacity} />
+                          <stop offset="100%" stopColor={endColor} stopOpacity={endOpacity} />
+                        </linearGradient>
+                      )
+                    })}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                  <XAxis
+                    dataKey="name"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.tick, fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    interval={getFullscreenXAxisInterval()}
+                  />
+                  <YAxis
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.tick, fontSize: windowWidth <= 640 ? 9 : 12 }}
+                    width={
+                      windowWidth <= 640
+                        ? wagesFullscreenConfig.yAxisConfig.width || 45
+                        : undefined
+                    }
+                    tickFormatter={wagesFullscreenConfig.yAxisConfig.formatter}
+                    domain={wagesFullscreenConfig.yAxisConfig.domain}
+                    label={
+                      wagesFullscreenConfig.yAxisConfig.label
+                        ? {
+                            value: wagesFullscreenConfig.yAxisConfig.label,
+                            angle: -90,
+                            position: 'insideLeft',
+                            style: {
+                              textAnchor: 'middle',
+                              fill: chartColors.tick,
+                              fontSize: 11
+                            }
+                          }
+                        : undefined
+                    }
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: chartColors.tooltipBg,
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: chartColors.tooltipText
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (value === null || value === undefined) return ['N/A', name]
+                      const [text, label] = wagesFullscreenConfig.tooltipConfig.formatter(
+                        value,
+                        value,
+                        name
+                      )
+                      return [text, label]
+                    }}
+                  />
+                  {wagesFullscreenConfig.series.map((s, index) => {
+                    const gradientId = `${s.gradientId || 'gradient-wages-fs'}-${index}-fullscreen`
+                    const strokeColor = s.color || '#A580F2'
+                    const strokeDasharray = s.style === 'dashed' ? '5 5' : undefined
+                    return (
+                      <Area
+                        key={s.key}
+                        type="monotone"
+                        dataKey={s.key}
+                        stroke={strokeColor}
+                        fill={`url(#${gradientId})`}
+                        strokeWidth={wagesFullscreenConfig.styleConfig.strokeWidth || 2}
+                        strokeDasharray={strokeDasharray}
+                        name={s.label}
+                      />
+                    )
+                  })}
+                  <Legend />
                 </AreaChart>
               ) : (
                 <AreaChart data={chartData} margin={windowWidth <= 640 ? { bottom: 60, top: 20, right: 5, left: 15 } : { bottom: 60, top: 20, right: 30, left: 30 }}>
@@ -3253,7 +3413,7 @@ const ExploreData = () => {
             })()}
             
             {/* Employees Workforce Charts Section */}
-            {(genderComparisonData.length > 0 || immigrationComparisonData.length > 0) && (
+            {(genderComparisonData.length > 0 || immigrationComparisonData.length > 0 || hasWagesData) && (
               <div className="charts-section charts-section-employees">
                 <div className="section-header">
                     <h2 className="section-title">Employee characteristics</h2>
@@ -3265,10 +3425,15 @@ const ExploreData = () => {
                   <WorkforceExplorer
                     buildGenderConfig={buildGenderChartConfig}
                     buildImmigrationConfig={buildImmigrationChartConfig}
+                    buildWagesConfig={buildWagesChartConfig}
                     hasGender={genderComparisonData.length > 0}
                     hasImmigration={immigrationComparisonData.length > 0}
+                    hasWages={hasWagesData}
                     onShowTable={() => {
                       if (workforceSelectedTab === 'gender') {
+                        setShowGenderTable(!showGenderTable)
+                      } else if (workforceSelectedTab === 'wages') {
+                        // Wages uses GraphTemplate table rendering; keep a dedicated toggle for consistency
                         setShowGenderTable(!showGenderTable)
                       } else {
                         setShowImmigrationTable(!showImmigrationTable)
@@ -3277,9 +3442,11 @@ const ExploreData = () => {
                     onFullscreen={(tab) => {
                       setFullscreenChart(tab)
                     }}
-                    showTable={workforceSelectedTab === 'gender' ? showGenderTable : showImmigrationTable}
+                    showTable={workforceSelectedTab === 'gender' || workforceSelectedTab === 'wages' ? showGenderTable : showImmigrationTable}
                     selectedTab={workforceSelectedTab}
                     onTabChange={setWorkforceSelectedTab}
+                    wagesView={wagesView}
+                    onWagesViewChange={setWagesView}
                   />
                 ) : (
                   <>
@@ -3966,7 +4133,7 @@ const ExploreData = () => {
                 <div className="section-header">
                   <h2 className="section-title">Unicorns</h2>
                 </div>
-                <p className="section-description">Finnish unicorns - companies valued at over $1 billion.</p>
+                <p className="section-description">Unicorns with Finnish background - companies valued at over $1 billion.</p>
                 
                 <div className="chart-card chart-card-with-text">
                   <UnicornsValuationChart

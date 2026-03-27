@@ -113,6 +113,17 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
       console.log('⚠️ Employees gender GID not configured, skipping...')
     }
 
+    // Load wages data if GID is configured
+    let wagesData: any[] = []
+    const wagesGid = import.meta.env.VITE_WAGES_GID || ''
+    if (wagesGid) {
+      console.log('📥 Loading wages data...')
+      wagesData = await loadDataFromTab(wagesGid)
+      console.log(`✅ Wages data loaded: ${wagesData.length} rows`)
+    } else {
+      console.log('⚠️ Wages GID not configured, skipping...')
+    }
+
     // Load barometer data if configured (different sheet)
     let barometerData: any[] = []
     const barometerSheetId = import.meta.env.VITE_BAROMETER_SHEET_ID || ''
@@ -167,6 +178,7 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
     const allData = {
       main: mainData,
       employeesGender: employeesGenderData,
+      wages: wagesData,
       barometer: barometerData,
       lastUpdated: new Date().toISOString(),
       source: 'google-sheets'
@@ -215,12 +227,26 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
       document.body.removeChild(barometerLink)
       URL.revokeObjectURL(barometerUrl)
     }
+
+    // Download wages data file if available
+    if (wagesData.length > 0) {
+      const wagesDataStr = JSON.stringify(wagesData, null, 2)
+      const wagesDataBlob = new Blob([wagesDataStr], { type: 'application/json' })
+      const wagesUrl = URL.createObjectURL(wagesDataBlob)
+      const wagesLink = document.createElement('a')
+      wagesLink.href = wagesUrl
+      wagesLink.download = 'wages-data.json'
+      document.body.appendChild(wagesLink)
+      wagesLink.click()
+      document.body.removeChild(wagesLink)
+      URL.revokeObjectURL(wagesUrl)
+    }
     
     console.log('📥 JSON files downloaded')
 
     return {
       success: true,
-      message: `Successfully updated! Main: ${mainData.length} rows, Gender: ${employeesGenderData.length} rows, Barometer: ${barometerData.length} rows`,
+      message: `Successfully updated! Main: ${mainData.length} rows, Gender: ${employeesGenderData.length} rows, Wages: ${wagesData.length} rows, Barometer: ${barometerData.length} rows`,
       data: allData
     }
   } catch (error: any) {
@@ -233,7 +259,7 @@ export async function updateDataFromGoogleSheets(): Promise<{ success: boolean; 
 }
 
 // Load data from localStorage (fast)
-export function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], barometer: any[], lastUpdated?: string } | null {
+export function loadDataFromLocalStorage(): { main: any[], employeesGender: any[], wages: any[], barometer: any[], lastUpdated?: string } | null {
   try {
     const stored = localStorage.getItem('startupData')
     if (!stored) return null
@@ -242,6 +268,7 @@ export function loadDataFromLocalStorage(): { main: any[], employeesGender: any[
     return {
       main: data.main || [],
       employeesGender: data.employeesGender || [],
+      wages: data.wages || [],
       barometer: data.barometer || [],
       lastUpdated: data.lastUpdated
     }
