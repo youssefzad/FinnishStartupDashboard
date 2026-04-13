@@ -16,12 +16,12 @@ function ChartEmbedContent() {
   const showDebug = searchParams.get('fscDebug') === '1'
 
   // Embed theme resolution: single source of truth
-  // theme=light|dark|system, default to dark for embeds
+  // theme=light|dark|auto (legacy: system), default to dark for embeds
   const themeParam = searchParams.get('theme')
   const embedTheme: 'light' | 'dark' = 
     themeParam === 'light' || themeParam === 'dark'
       ? themeParam
-      : themeParam === 'system'
+      : themeParam === 'auto' || themeParam === 'system'
       ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
       : 'dark' // Default to dark for embeds when no theme param is provided
 

@@ -14,7 +14,7 @@ export default function EmbedHelp() {
             <h2>Quick Start</h2>
             <p>Every chart on the <Link to="/data">Explore page</Link> has an "Embed" button that provides copy-paste code snippets.</p>
             <p>You can embed any chart using an iframe:</p>
-            <pre className="code-block"><code>{`<iframe src="https://your-domain.com/embed/economic-impact-revenue"
+            <pre className="code-block"><code>{`<iframe src="https://your-domain.com/embed/economic-impact-revenue?theme=auto"
      style="width:100%;border:0;"
      height="520"
      loading="lazy"></iframe>`}</code></pre>
@@ -48,8 +48,8 @@ export default function EmbedHelp() {
               <tbody>
                 <tr>
                   <td><code>theme</code></td>
-                  <td><code>light</code>, <code>dark</code>, <code>system</code></td>
-                  <td>Chart theme (default: <code>system</code>)</td>
+                  <td><code>light</code>, <code>dark</code>, <code>auto</code> (legacy: <code>system</code>)</td>
+                  <td>Chart theme (default: <code>light</code>)</td>
                 </tr>
                 <tr>
                   <td><code>filter</code></td>
@@ -83,7 +83,7 @@ export default function EmbedHelp() {
           <section>
             <h2>Responsive Height</h2>
             <p>For automatic height adjustment, use the responsive iframe snippet with postMessage listener:</p>
-            <pre className="code-block"><code>{`<iframe id="my-chart" src="https://your-domain.com/embed/economic-impact-revenue"
+            <pre className="code-block"><code>{`<iframe id="my-chart" src="https://your-domain.com/embed/economic-impact-revenue?theme=auto"
      style="width:100%;border:0;" height="520" loading="lazy"></iframe>
 <script>
   window.addEventListener('message', function(event) {

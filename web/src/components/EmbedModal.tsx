@@ -54,8 +54,9 @@ export default function EmbedModal({ chartId, currentFilter, currentView, onClos
   if (currentView && currentView !== 'none') {
     queryParams.set('view', currentView)
   }
-  // Don't include theme param - embeds default to dark mode
-  // Users can add ?theme=light or ?theme=system if they want to override
+  // Include theme param so copy/paste embeds can easily switch modes.
+  // Default in snippet: auto (follows user's system preference).
+  queryParams.set('theme', 'auto')
   queryParams.set('showTitle', '1')
   queryParams.set('showSource', '1')
   
@@ -153,7 +154,7 @@ export default function EmbedModal({ chartId, currentFilter, currentView, onClos
             </button>
             {showParams && (
               <ul>
-                <li><code>theme</code> - <code>light</code>, <code>dark</code>, or <code>system</code></li>
+                <li><code>theme</code> - <code>light</code>, <code>dark</code>, or <code>auto</code> (legacy: <code>system</code>)</li>
                 <li><code>filter</code> - Filter value (e.g., <code>all</code>, <code>early-stage</code>, <code>finland</code>)</li>
                 <li><code>view</code> - View mode for bar charts (e.g., <code>male-share</code>, <code>female-share</code>)</li>
                 <li><code>showTitle</code> - Show chart title (<code>1</code> or <code>0</code>)</li>
