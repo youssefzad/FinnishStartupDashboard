@@ -245,12 +245,9 @@ function ChartEmbedContent() {
   // Extract params from URL
   const params: Record<string, string> = {}
   const filter = searchParams.get('filter')
-  // Validate filter: must be 'all', 'finnish', or 'finnish-background', default to 'all'
-  if (filter && (filter === 'all' || filter === 'finnish' || filter === 'finnish-background')) {
-    params.filter = filter
-  } else {
-    params.filter = 'all'
-  }
+  // NOTE: Filter values are chart-specific (e.g. revenue: early-stage/later-stage; employees: finland).
+  // Unknown filters are safely ignored downstream (builders fall back to "all"), so don't over-validate here.
+  params.filter = filter || 'all'
   const view = searchParams.get('view')
   if (view) params.view = view
   if (searchParams.get('showMaleBar') !== null) params.showMaleBar = searchParams.get('showMaleBar') || 'true'

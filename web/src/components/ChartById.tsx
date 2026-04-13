@@ -19,6 +19,7 @@ interface ChartByIdProps {
 
 export default function ChartById({ chartId, params = {}, embedMode = false, onConfigReady, onFilterChange, onViewChange, onToggleBar, onDebugInfo, theme }: ChartByIdProps) {
   const [config, setConfig] = useState<any>(null)
+  const [sourceData, setSourceData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200)
@@ -77,6 +78,9 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
         setLoading(false)
         return
       }
+
+      // Keep the raw dataset for charts that need it (e.g. Unicorns uses its own component + normalizer)
+      setSourceData(data)
 
       // Get window width for responsive behavior
       const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200
@@ -171,7 +175,7 @@ export default function ChartById({ chartId, params = {}, embedMode = false, onC
 
     return (
       <UnicornsValuationChart
-        data={config?.data || []}
+        data={sourceData}
         filter={unicornsFilter}
         theme={effectiveTheme}
         onFilterChange={(newFilter) => {

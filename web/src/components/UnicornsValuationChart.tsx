@@ -54,6 +54,11 @@ function normalizeUnicornData(data: any[]): UnicornRow[] {
 
 // Format valuation for display
 function formatValuation(value: number): string {
+  // Unicorn valuations in our dataset are stored in billions (e.g. 8.1 = €8.1B).
+  // Keep support for raw-unit valuations as well, in case the input source changes.
+  if (value < 1000) {
+    return `€${value.toFixed(value >= 10 ? 1 : 2)}B`
+  }
   if (value >= 1000000000) {
     const billions = value / 1000000000
     return `€${billions.toFixed(billions >= 10 ? 1 : 2)}B`
